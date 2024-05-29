@@ -862,6 +862,7 @@ fieldOffsetsStartDo(J9JavaVM *vm, J9ROMClass *romClass, J9Class *superClazz, J9R
 		}
 
 		if (NULL != superClazz) {
+			Assert_VM_true(superClazz->accessCountOffset > 0);
 			state->accessCountOffset = superClazz->accessCountOffset;
 		} else {
 			extraHiddenFields = initJ9HiddenField(&state->hiddenAccessCountField, NULL,
