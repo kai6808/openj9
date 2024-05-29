@@ -861,13 +861,27 @@ fieldOffsetsStartDo(J9JavaVM *vm, J9ROMClass *romClass, J9Class *superClazz, J9R
 					&state->lockOffset, extraHiddenFields);
 		}
 
-		if (NULL != superClazz) {
-			Assert_VM_true(superClazz->accessCountOffset > 0);
-			state->accessCountOffset = superClazz->accessCountOffset;
-		} else {
-			extraHiddenFields = initJ9HiddenField(&state->hiddenAccessCountField, NULL,
-				vm->hiddenAccessCountFieldShape,
-				&state->accessCountOffset, extraHiddenFields);
+		if (J9ROMCLASS_IS_ARRAY(romClass)) {
+			state->accessCountOffset = -1;
+			if (NULL != superClazz && (0 == J9CLASS_DEPTH(superClazz))) {
+				// Delete accessCountOffset from Object?
+				U_32 newSuperSize = fieldInfo.getSuperclassFieldsSize() - referenceSize;
+				if (fieldInfo.isSuperclassBackfillSlotAvailable()) {
+					newSuperSize -= ObjectFieldInfo::BACKFILL_SIZE;
+					fieldInfo.setSuperclassBackfillOffset(ObjectFieldInfo::NO_BACKFILL_AVAILABLE);
+				}
+				fieldInfo.setSuperclassFieldsSize(newSuperSize);
+			}
+		}
+		else {
+			if (NULL != superClazz) {
+				Assert_VM_true(superClazz->accessCountOffset > 0);
+				state->accessCountOffset = superClazz->accessCountOffset;
+			} else {
+				extraHiddenFields = initJ9HiddenField(&state->hiddenAccessCountField, NULL,
+					vm->hiddenAccessCountFieldShape,
+					&state->accessCountOffset, extraHiddenFields);
+			}
 		}
 
 		/*
