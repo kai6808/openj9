@@ -46,6 +46,13 @@
 
 #define J9OAB_MIXEDOBJECT_EA(object, offset, type) (type *)(((U_8 *)(object)) + offset)
 
+inline void IncrementAccessCounter(J9VMThread *vmThread, j9object_t srcObject)
+{
+	J9Class *clazz = J9OBJECT_CLAZZ(vmThread, srcObject);
+	U_32* accessCount = J9OAB_MIXEDOBJECT_EA(srcObject, clazz->accessCountOffset, U_32);
+	if (*accessCount != UINT32_MAX) ++(*accessCount);
+}
+
 class MM_ObjectAccessBarrierAPI
 {
 	friend class MM_ObjectAccessBarrier;
@@ -479,6 +486,7 @@ public:
 	VMINLINE j9object_t
 	inlineMixedObjectReadObject(J9VMThread *vmThread, j9object_t srcObject, UDATA srcOffset, bool isVolatile = false)
 	{
+		IncrementAccessCounter(vmThread, srcObject);
 #if defined(J9VM_GC_ALWAYS_CALL_OBJECT_ACCESS_BARRIER)
 		return vmThread->javaVM->memoryManagerFunctions->j9gc_objaccess_mixedObjectReadObject(vmThread, srcObject, srcOffset, isVolatile);
 #elif defined(J9VM_GC_COMBINATION_SPEC)
@@ -510,6 +518,7 @@ public:
 	VMINLINE void
 	inlineMixedObjectStoreObject(J9VMThread *vmThread, j9object_t srcObject, UDATA srcOffset, j9object_t value, bool isVolatile = false)
 	{
+		IncrementAccessCounter(vmThread, srcObject);
 #if defined(J9VM_GC_ALWAYS_CALL_OBJECT_ACCESS_BARRIER)
 		vmThread->javaVM->memoryManagerFunctions->j9gc_objaccess_mixedObjectStoreObject(vmThread, srcObject, srcOffset, value, isVolatile);
 #elif defined(J9VM_GC_COMBINATION_SPEC) 
@@ -968,6 +977,8 @@ public:
 	VMINLINE j9object_t
 	inlineStaticReadObject(J9VMThread *vmThread, J9Class *clazz, j9object_t *srcAddress, bool isVolatile = false)
 	{
+		// TODO: We don't have actual object from what it's called
+		// IncrementAccessCounter(vmThread, *srcAddress);
 #if defined(J9VM_GC_ALWAYS_CALL_OBJECT_ACCESS_BARRIER)
 		return vmThread->javaVM->memoryManagerFunctions->j9gc_objaccess_staticReadObject(vmThread, clazz, srcAddress, isVolatile);
 #elif defined(J9VM_GC_COMBINATION_SPEC) 
@@ -1000,6 +1011,8 @@ public:
 	VMINLINE void
 	inlineStaticStoreObject(J9VMThread *vmThread, J9Class *clazz, j9object_t *srcAddress, j9object_t value, bool isVolatile = false)
 	{
+		// TODO: We don't have actual object from what it's called
+		// IncrementAccessCounter(vmThread, *srcAddress);
 #if defined(J9VM_GC_ALWAYS_CALL_OBJECT_ACCESS_BARRIER)
 		vmThread->javaVM->memoryManagerFunctions->j9gc_objaccess_staticStoreObject(vmThread, clazz, srcAddress, value, isVolatile);
 #elif defined(J9VM_GC_COMBINATION_SPEC) 

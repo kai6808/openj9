@@ -1632,8 +1632,10 @@ typedef struct J9ROMFieldOffsetWalkState {
 	U_32 walkFlags;
 	UDATA lockOffset;
 	UDATA finalizeLinkOffset;
+	UDATA accessCountOffset;
 	struct J9HiddenInstanceField hiddenLockwordField;
 	struct J9HiddenInstanceField hiddenFinalizeLinkField;
+	struct J9HiddenInstanceField hiddenAccessCountField;
 	struct J9HiddenInstanceField* hiddenInstanceFields[J9VM_MAX_HIDDEN_FIELDS_PER_CLASS];
 	UDATA hiddenInstanceFieldCount;
 	UDATA hiddenInstanceFieldWalkIndex;
@@ -2975,7 +2977,7 @@ typedef struct J9Object {
 	 *     under the balanced GC policy.
 	 */
 	j9objectclass_t clazz;
-	uint32_t accessCount;
+	uint64_t accessCount;
 } J9Object;
 
 #define OBJECT_HEADER_FORWARDED  1
@@ -3301,6 +3303,7 @@ typedef struct J9Class {
 	IDATA backfillOffset;
 	struct J9Class* replacedClass;
 	UDATA finalizeLinkOffset;
+	UDATA accessCountOffset;
 	struct J9Class* nextClassInSegment;
 	struct J9ConstantPool *ramConstantPool;
 	j9object_t* callSites;
@@ -3396,6 +3399,7 @@ typedef struct J9ArrayClass {
 	IDATA backfillOffset;
 	struct J9Class* replacedClass;
 	UDATA finalizeLinkOffset;
+	UDATA accessCountOffset;
 	struct J9Class* nextClassInSegment;
 	UDATA* ramConstantPool;
 	j9object_t* callSites;
@@ -5897,6 +5901,7 @@ typedef struct J9JavaVM {
 	omrthread_monitor_t hiddenInstanceFieldsMutex;
 	struct J9ROMFieldShape* hiddenLockwordFieldShape;
 	struct J9ROMFieldShape* hiddenFinalizeLinkFieldShape;
+	struct J9ROMFieldShape* hiddenAccessCountFieldShape;
 	UDATA modulePointerOffset;
 	omrthread_monitor_t jniCriticalLock;
 	UDATA jniCriticalResponseCount;

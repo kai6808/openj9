@@ -97,6 +97,7 @@ calculateInstanceDescription( J9VMThread *vmThread, J9Class *ramClass, J9Class *
 		/* write lockword offset into ramClass */
 		ramClass->lockOffset =	walkState->lockOffset;
 		ramClass->finalizeLinkOffset = walkState->finalizeLinkOffset;
+		ramClass->accessCountOffset = walkState->accessCountOffset;
 	}
 #if defined(J9VM_OPT_VALHALLA_FLATTENABLE_VALUE_TYPES)
 	if (hasReferences)

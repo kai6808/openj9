@@ -458,6 +458,11 @@ initializeHiddenInstanceFieldsList(J9JavaVM *vm)
 		goto destroyMutexAndCleanup;
 	}
 
+	vm->hiddenAccessCountFieldShape = allocAndInitFakeJ9ROMFieldShape(vm, "accessCount", (referenceSize == sizeof(U_32) ? "I" : "J"));
+	if (NULL == vm->hiddenAccessCountFieldShape) {
+		goto destroyMutexAndCleanup;
+	}
+
 	vm->hiddenInstanceFields = NULL;
 
 exit:
@@ -469,6 +474,8 @@ destroyMutexAndCleanup:
 	vm->hiddenLockwordFieldShape = NULL;
 	j9mem_free_memory(vm->hiddenFinalizeLinkFieldShape);
 	vm->hiddenFinalizeLinkFieldShape = NULL;
+	j9mem_free_memory(vm->hiddenAccessCountFieldShape);
+	vm->hiddenAccessCountFieldShape = NULL;
 	rc = 1;
 	goto exit;
 }
@@ -495,6 +502,8 @@ freeHiddenInstanceFieldsList(J9JavaVM *vm)
 		vm->hiddenLockwordFieldShape = NULL;
 		j9mem_free_memory(vm->hiddenFinalizeLinkFieldShape);
 		vm->hiddenFinalizeLinkFieldShape = NULL;
+		j9mem_free_memory(vm->hiddenAccessCountFieldShape);
+		vm->hiddenAccessCountFieldShape = NULL;
 
 		omrthread_monitor_destroy(vm->hiddenInstanceFieldsMutex);
 	}
@@ -850,6 +859,14 @@ fieldOffsetsStartDo(J9JavaVM *vm, J9ROMClass *romClass, J9Class *superClazz, J9R
 			extraHiddenFields = initJ9HiddenField(&state->hiddenLockwordField, NULL,
 					vm->hiddenLockwordFieldShape,
 					&state->lockOffset, extraHiddenFields);
+		}
+
+		if (NULL != superClazz) {
+			state->accessCountOffset = superClazz->accessCountOffset;
+		} else {
+			extraHiddenFields = initJ9HiddenField(&state->hiddenAccessCountField, NULL,
+				vm->hiddenAccessCountFieldShape,
+				&state->accessCountOffset, extraHiddenFields);
 		}
 
 		/*
