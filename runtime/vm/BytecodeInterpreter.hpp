@@ -5217,7 +5217,7 @@ done:
 		ffi_type *ffiRetType = cif->rtype;
 		UDATA returnTypeSize = ffiRetType->size;
 		U_8 returnType = LayoutFFITypeHelpers::getJ9NativeTypeCodeFromFFIType(ffiRetType);
-		U_32 ffiArgCount = J9INDEXABLEOBJECT_SIZE(currentThread, argValues);
+		U_32 ffiArgCount = J9INDEXABLEOBJECT_SIZE(_currentThread, argValues);
 		const U_8 minimalCallout = 16;
 		bool isMinimal = (ffiArgCount <= minimalCallout);
 

@@ -346,7 +346,7 @@ public:
 	{
 		/* Note: initializeLockWord is ignored as arrays never have inline lockwords */
 #if defined(J9VM_GC_ALWAYS_CALL_OBJECT_ACCESS_BARRIER) 
-		currentThread->javaVM->memoryManagerFunctions->j9gc_objaccess_cloneIndexableObject(currentThread, (J9IndexableObject*)original, (J9IndexableObject*)copy), objectMapFunction, objectMapData;
+		currentThread->javaVM->memoryManagerFunctions->j9gc_objaccess_cloneIndexableObject(currentThread, (J9IndexableObject*)original, (J9IndexableObject*)copy, objectMapFunction, objectMapData);
 #else /* defined(J9VM_GC_ALWAYS_CALL_OBJECT_ACCESS_BARRIER) */
 		if (OBJECT_HEADER_SHAPE_POINTERS == J9CLASS_SHAPE(objectClass)) {
 			if (NULL != objectMapFunction) {

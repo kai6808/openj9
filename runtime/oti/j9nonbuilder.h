@@ -2975,6 +2975,7 @@ typedef struct J9Object {
 	 *     under the balanced GC policy.
 	 */
 	j9objectclass_t clazz;
+	uint32_t accessCount;
 } J9Object;
 
 #define OBJECT_HEADER_FORWARDED  1

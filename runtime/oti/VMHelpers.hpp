@@ -1786,7 +1786,7 @@ exit:
 	}
 
 	static VMINLINE bool
-	objectArrayStoreAllowed(J9VMThread const *currentThread, j9object_t array, j9object_t storeValue)
+	objectArrayStoreAllowed(J9VMThread *currentThread, j9object_t array, j9object_t storeValue)
 	{
 		bool rc = true;
 		if (NULL != storeValue) {
