@@ -75,7 +75,89 @@ MM_MarkingDelegate::initialize(MM_EnvironmentBase *env, MM_MarkingScheme *markin
 #if defined(J9VM_GC_DYNAMIC_CLASS_UNLOADING)
 	_markMap = (_extensions->dynamicClassUnloading != MM_GCExtensions::DYNAMIC_CLASS_UNLOADING_NEVER) ? markingScheme->getMarkMap() : NULL;
 #endif /* defined(J9VM_GC_DYNAMIC_CLASS_UNLOADING) */
+
+	char file_name[40];
+	_dump_last_time = _dump_last_id = _dump_now = 0;
+
+	std::ignore = tmpnam(file_name);
+	// printf("My log: initialize %s, this=%p\n", file_name, this);
+	_dump_ptr.reset(fopen(file_name, "w"));
+	_dump_fout = _dump_ptr.get();
+
 	return true;
+}
+
+void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, bool compressObjectReferences)
+{
+	if (_dump_now)
+	{
+		U_32 *accessCount;
+
+		J9Class *clazz = J9GC_J9OBJECT_CLAZZ_CMP(objectPtr, compressObjectReferences);
+		if (clazz->accessCountOffset == (UDATA)-1)
+		{
+			assert(J9ROMCLASS_IS_ARRAY(clazz->romClass));
+			// dealing with arrays
+
+			if (compressObjectReferences)
+			{
+				U_32 size = ((J9IndexableObjectContiguousCompressed *)objectPtr)->size;
+				if (0 == size) accessCount = &((J9IndexableObjectDiscontiguousCompressed *)objectPtr)->accessCount;
+				else accessCount = &((J9IndexableObjectContiguousCompressed *)objectPtr)->accessCount;
+			}
+			else
+			{
+				U_32 size = ((J9IndexableObjectContiguousFull *)objectPtr)->size;
+				if (0 == size) accessCount = &((J9IndexableObjectDiscontiguousFull *)objectPtr)->accessCount;
+				else accessCount = &((J9IndexableObjectContiguousFull *)objectPtr)->accessCount;
+			}
+
+			J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass);
+			if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "InnerClass") || J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "MainClass"))
+			{
+				//printf(
+				fprintf(_dump_fout,
+					"My log array: th=%zu, class=%.*s, ptr=%p, cnt=%u\n",
+					std::hash<std::thread::id>()(std::this_thread::get_id()),
+					J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
+					J9UTF8_DATA(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
+					objectPtr,
+					*accessCount);
+
+				printf("My log array: th=%zu, class=%.*s, ptr=%p, cnt=%u\n",
+					std::hash<std::thread::id>()(std::this_thread::get_id()),
+					J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
+					J9UTF8_DATA(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
+					objectPtr,
+					*accessCount);
+			}
+		}
+		else
+		{
+			assert(!J9ROMCLASS_IS_ARRAY(clazz->romClass));
+			accessCount = (U_32*)((U_8 *)(objectPtr) + clazz->accessCountOffset);
+
+			J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(clazz->romClass);
+			if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "InnerClass") || J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "MainClass"))
+			{
+				//printf(
+				fprintf(_dump_fout,
+					"My log obj: th=%zu, class=%.*s, ptr=%p, cnt=%u\n",
+					std::hash<std::thread::id>()(std::this_thread::get_id()),
+					J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(clazz->romClass)),
+					J9UTF8_DATA(J9ROMCLASS_CLASSNAME(clazz->romClass)),
+					objectPtr,
+					*accessCount);
+
+				printf("My log obj: th=%zu, class=%.*s, ptr=%p, cnt=%u\n",
+					std::hash<std::thread::id>()(std::this_thread::get_id()),
+					J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(clazz->romClass)),
+					J9UTF8_DATA(J9ROMCLASS_CLASSNAME(clazz->romClass)),
+					objectPtr,
+					*accessCount);
+			}
+		}
+	}
 }
 
 
@@ -187,6 +269,25 @@ MM_MarkingDelegate::mainSetupForGC(MM_EnvironmentBase *env)
 #endif /* J9VM_GC_DYNAMIC_CLASS_UNLOADING */
 
 	_collectStringConstantsEnabled = _extensions->collectStringConstants;
+
+	auto cur_time = std::time(nullptr);
+	if (cur_time - _dump_last_time > 5)
+	{
+		_dump_now = true;
+		_dump_last_time = cur_time;
+		// printf(
+		fprintf(_dump_fout,
+			"\n My log: Dump Snapshot #%d\n", _dump_last_id++);
+		printf("\n My log: Dump Snapshot #%d\n", _dump_last_id++);
+	}
+	else
+	{
+		_dump_now = false;
+		// printf(
+		fprintf(_dump_fout,
+			"\n My log: Skipping Snapshot #%d\n", _dump_last_id);
+		printf("\n My log: Skipping Snapshot #%d\n", _dump_last_id);
+	}
 }
 
 void
