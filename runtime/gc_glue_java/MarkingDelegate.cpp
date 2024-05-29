@@ -92,6 +92,7 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, bool compre
 	if (_dump_now)
 	{
 		U_32 *accessCount;
+		size_t objectHeaderSize;
 
 		J9Class *clazz = J9GC_J9OBJECT_CLAZZ_CMP(objectPtr, compressObjectReferences);
 		if (clazz->accessCountOffset == (UDATA)-1)
@@ -99,63 +100,94 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, bool compre
 			assert(J9ROMCLASS_IS_ARRAY(clazz->romClass));
 			// dealing with arrays
 
+			U_32 arrayLen;
 			if (compressObjectReferences)
 			{
-				U_32 size = ((J9IndexableObjectContiguousCompressed *)objectPtr)->size;
-				if (0 == size) accessCount = &((J9IndexableObjectDiscontiguousCompressed *)objectPtr)->accessCount;
-				else accessCount = &((J9IndexableObjectContiguousCompressed *)objectPtr)->accessCount;
+				arrayLen = ((J9IndexableObjectContiguousCompressed *)objectPtr)->size;
+				if (0 == arrayLen)
+				{
+					accessCount = &((J9IndexableObjectDiscontiguousCompressed *)objectPtr)->accessCount;
+					arrayLen = ((J9IndexableObjectDiscontiguousCompressed *)objectPtr)->size;
+					objectHeaderSize = sizeof(J9IndexableObjectDiscontiguousCompressed);
+				}
+				else
+				{
+					accessCount = &((J9IndexableObjectContiguousCompressed *)objectPtr)->accessCount;
+					objectHeaderSize = sizeof(J9IndexableObjectContiguousCompressed);
+				}
 			}
 			else
 			{
-				U_32 size = ((J9IndexableObjectContiguousFull *)objectPtr)->size;
-				if (0 == size) accessCount = &((J9IndexableObjectDiscontiguousFull *)objectPtr)->accessCount;
-				else accessCount = &((J9IndexableObjectContiguousFull *)objectPtr)->accessCount;
+				arrayLen = ((J9IndexableObjectContiguousFull *)objectPtr)->size;
+				if (0 == arrayLen)
+				{
+					accessCount = &((J9IndexableObjectDiscontiguousFull *)objectPtr)->accessCount;
+					arrayLen = ((J9IndexableObjectDiscontiguousFull *)objectPtr)->size;
+					objectHeaderSize = sizeof(J9IndexableObjectDiscontiguousFull);
+				}
+				else
+				{
+					accessCount = &((J9IndexableObjectContiguousFull *)objectPtr)->accessCount;
+					objectHeaderSize = sizeof(J9IndexableObjectContiguousFull);
+				}
 			}
 
 			J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass);
 			if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "InnerClass") || J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "MainClass"))
 			{
-				//printf(
-				fprintf(_dump_fout,
-					"My log array: th=%zu, class=%.*s, ptr=%p, cnt=%u\n",
+				printf("My log array: th=%zu, class=%.*s, ptr=%p, cnt=%u, len=%u, size=%lu\n",
 					std::hash<std::thread::id>()(std::this_thread::get_id()),
 					J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
 					J9UTF8_DATA(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
 					objectPtr,
-					*accessCount);
-
-				printf("My log array: th=%zu, class=%.*s, ptr=%p, cnt=%u\n",
-					std::hash<std::thread::id>()(std::this_thread::get_id()),
-					J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
-					J9UTF8_DATA(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
-					objectPtr,
-					*accessCount);
+					*accessCount,
+					arrayLen,
+					objectHeaderSize + arrayLen * J9ARRAYCLASS_GET_STRIDE(clazz));
 			}
+
+			//printf(
+			fprintf(_dump_fout,
+				"My log array: th=%zu, class=%.*s, ptr=%p, cnt=%u, len=%u, size=%lu\n",
+				std::hash<std::thread::id>()(std::this_thread::get_id()),
+				J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
+				J9UTF8_DATA(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
+				objectPtr,
+				*accessCount,
+				arrayLen,
+				objectHeaderSize + arrayLen * J9ARRAYCLASS_GET_STRIDE(clazz));
 		}
 		else
 		{
 			assert(!J9ROMCLASS_IS_ARRAY(clazz->romClass));
+			// dealing with non-indexable
+
 			accessCount = (U_32*)((U_8 *)(objectPtr) + clazz->accessCountOffset);
+			objectHeaderSize = compressObjectReferences ? sizeof(J9ObjectCompressed) : sizeof(J9ObjectFull);
+
+			// clazz->romClass->romSize,
 
 			J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(clazz->romClass);
 			if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "InnerClass") || J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "MainClass"))
 			{
-				//printf(
-				fprintf(_dump_fout,
-					"My log obj: th=%zu, class=%.*s, ptr=%p, cnt=%u\n",
+				printf("My log obj: th=%zu, class=%.*s, ptr=%p, cnt=%u, size=%zu\n",
 					std::hash<std::thread::id>()(std::this_thread::get_id()),
 					J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(clazz->romClass)),
 					J9UTF8_DATA(J9ROMCLASS_CLASSNAME(clazz->romClass)),
 					objectPtr,
-					*accessCount);
-
-				printf("My log obj: th=%zu, class=%.*s, ptr=%p, cnt=%u\n",
-					std::hash<std::thread::id>()(std::this_thread::get_id()),
-					J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(clazz->romClass)),
-					J9UTF8_DATA(J9ROMCLASS_CLASSNAME(clazz->romClass)),
-					objectPtr,
-					*accessCount);
+					*accessCount,
+					objectHeaderSize + clazz->totalInstanceSize);
 			}
+			
+			
+			//printf(
+			fprintf(_dump_fout,
+				"My log obj: th=%zu, class=%.*s, ptr=%p, cnt=%u, size=%zu\n",
+				std::hash<std::thread::id>()(std::this_thread::get_id()),
+				J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(clazz->romClass)),
+				J9UTF8_DATA(J9ROMCLASS_CLASSNAME(clazz->romClass)),
+				objectPtr,
+				*accessCount,
+				objectHeaderSize + clazz->totalInstanceSize);
 		}
 	}
 }
@@ -271,7 +303,7 @@ MM_MarkingDelegate::mainSetupForGC(MM_EnvironmentBase *env)
 	_collectStringConstantsEnabled = _extensions->collectStringConstants;
 
 	auto cur_time = std::time(nullptr);
-	if (cur_time - _dump_last_time > 5)
+	if (cur_time - _dump_last_time > 10)
 	{
 		_dump_now = true;
 		_dump_last_time = cur_time;
