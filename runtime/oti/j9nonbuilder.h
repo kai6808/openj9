@@ -3072,6 +3072,7 @@ typedef struct J9IndexableObject {
 typedef struct J9IndexableObjectContiguous {
 	j9objectclass_t clazz;
 	U_32 size;
+	uint32_t accessCount;
 #if defined(J9VM_ENV_DATA64) && defined(OMR_GC_FULL_POINTERS)
 	U_32 padding;
 #endif /* J9VM_ENV_DATA64 && !OMR_GC_COMPRESSED_POINTERS */
@@ -3080,11 +3081,13 @@ typedef struct J9IndexableObjectContiguous {
 typedef struct J9IndexableObjectContiguousCompressed {
 	U_32 clazz;
 	U_32 size;
+	uint32_t accessCount;
 } J9IndexableObjectContiguousCompressed;
 
 typedef struct J9IndexableObjectContiguousFull {
 	UDATA clazz;
 	U_32 size;
+	uint32_t accessCount;
 #if defined(J9VM_ENV_DATA64)
 	U_32 padding;
 #endif /* J9VM_ENV_DATA64 */
@@ -3094,6 +3097,7 @@ typedef struct J9IndexableObjectDiscontiguous {
 	j9objectclass_t clazz;
 	U_32 mustBeZero;
 	U_32 size;
+	uint32_t accessCount;
 #if defined(OMR_GC_COMPRESSED_POINTERS) || !defined(J9VM_ENV_DATA64)
 	U_32 padding;
 #endif /* OMR_GC_COMPRESSED_POINTERS || !J9VM_ENV_DATA64 */
@@ -3103,6 +3107,7 @@ typedef struct J9IndexableObjectDiscontiguousCompressed {
 	U_32 clazz;
 	U_32 mustBeZero;
 	U_32 size;
+	uint32_t accessCount;
 	U_32 padding;
 } J9IndexableObjectDiscontiguousCompressed;
 
@@ -3110,6 +3115,7 @@ typedef struct J9IndexableObjectDiscontiguousFull {
 	UDATA clazz;
 	U_32 mustBeZero;
 	U_32 size;
+	uint32_t accessCount;
 #if !defined(J9VM_ENV_DATA64)
 	U_32 padding;
 #endif /* !J9VM_ENV_DATA64 */
