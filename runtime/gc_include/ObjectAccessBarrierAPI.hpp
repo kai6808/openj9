@@ -94,6 +94,7 @@ inline void IncrementAccessCounter(J9VMThread *vmThread, j9object_t srcObject, i
 				J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(clazz->romClass)),
 				J9UTF8_DATA(J9ROMCLASS_CLASSNAME(clazz->romClass)),
 				stmt
+			);
 		}
 	}
 }
