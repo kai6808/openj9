@@ -47,13 +47,16 @@
 
 #define J9OAB_MIXEDOBJECT_EA(object, offset, type) (type *)(((U_8 *)(object)) + offset)
 
-inline void IncrementAccessCounter(J9VMThread *vmThread, j9object_t srcObject, int stmt)
+inline void IncrementAccessCounter(J9VMThread *vmThread, j9object_t srcObject, int stmt, double decay_factor = 0)
 {
 	J9Class *clazz = J9OBJECT_CLAZZ(vmThread, srcObject);
-	if (clazz->accessCountOffset == (UDATA)-1) {
+
+	if (clazz->accessCountOffset == (UDATA)-1)
+	{
+		// TODO: This doesn't work.
 		assert(J9ROMCLASS_IS_ARRAY(clazz->romClass));
 
-		U_32 *accessCount;
+		/*U_32 *accessCount;
 		if (J9VMTHREAD_COMPRESS_OBJECT_REFERENCES(vmThread))
 		{
 			U_32 size = ((J9IndexableObjectContiguousCompressed *)srcObject)->size;
@@ -67,35 +70,36 @@ inline void IncrementAccessCounter(J9VMThread *vmThread, j9object_t srcObject, i
 			else accessCount = &((J9IndexableObjectContiguousFull *)srcObject)->accessCount;
 		}
 
-		if (*accessCount != UINT32_MAX) ++(*accessCount);
+		if ((*accessCount != 0x0FFFFFFF)) ++(*accessCount);*/
 
-		J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass);
+		/*J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass);
 		if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "InnerClass") || J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "MainClass"))
 		{
 			printf("My log array increment for %p with value=%u for class=%.*s from stmt=%d\n",
-				srcObject, *accessCount,
+				srcObject, *accessCount & 0x0FFFFFFF,
 				J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
 				J9UTF8_DATA(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
 				stmt
 			);
-		}
+		}*/
 	}
 	else
 	{
 		assert(!J9ROMCLASS_IS_ARRAY(clazz->romClass));
-		U_32 *accessCount = J9OAB_MIXEDOBJECT_EA(srcObject, clazz->accessCountOffset, U_32);
-		if (*accessCount != UINT32_MAX) ++(*accessCount);
 
-		J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(clazz->romClass);
+		U_32 *accessCount = J9OAB_MIXEDOBJECT_EA(srcObject, clazz->accessCountOffset, U_32);
+		if (*accessCount != 0x0FFFFFFF) ++(*accessCount);
+
+		/*J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(clazz->romClass);
 		if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "InnerClass") || J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "MainClass"))
 		{
 			printf("My log obj increment for %p at %lu with value=%u for class=%.*s from stmt=%d\n",
-				srcObject, clazz->accessCountOffset, *accessCount,
+				srcObject, clazz->accessCountOffset, *accessCount & 0x0FFFFFFF,
 				J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(clazz->romClass)),
 				J9UTF8_DATA(J9ROMCLASS_CLASSNAME(clazz->romClass)),
 				stmt
 			);
-		}
+		}*/
 	}
 }
 

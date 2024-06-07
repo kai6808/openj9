@@ -77,6 +77,7 @@ private:
 	int _dump_last_id;
 	bool _dump_now;
 	int _dump_skipped_dumps;
+	int _dump_time_elapsed;
 	FILE* _dump_fout;
 	int _dump_freq;
 	std::unique_ptr<FILE, FILECloser> _dump_ptr;
