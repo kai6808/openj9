@@ -76,13 +76,30 @@ MM_MarkingDelegate::initialize(MM_EnvironmentBase *env, MM_MarkingScheme *markin
 	_markMap = (_extensions->dynamicClassUnloading != MM_GCExtensions::DYNAMIC_CLASS_UNLOADING_NEVER) ? markingScheme->getMarkMap() : NULL;
 #endif /* defined(J9VM_GC_DYNAMIC_CLASS_UNLOADING) */
 
+	// dump stats
+	//
 	char file_name[40];
-	_dump_last_time = _dump_last_id = _dump_now = 0;
+	_dump_last_time = 0;
+	_dump_last_id = 0;
+	_dump_now = false;
+	_dump_skipped_dumps = 0;
 
 	std::ignore = tmpnam(file_name);
-	// printf("My log: initialize %s, this=%p\n", file_name, this);
+
 	_dump_ptr.reset(fopen(file_name, "w"));
+	if (_extensions->dumpObjCountFreq)
+	{
+		// set to zero at config level to disable turns into -1
+		// enabled by default with zero
+		_dump_freq = _extensions->dumpObjCountFreq == -1 ? 0 : _extensions->dumpObjCountFreq;
+	}
+	else
+	{
+		_dump_freq = 10;
+	}
 	_dump_fout = _dump_ptr.get();
+
+	printf("My log: initialize %s, this=%p with dump_freq=%d\n", file_name, this, _dump_freq);
 
 	return true;
 }
@@ -132,7 +149,7 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, bool compre
 				}
 			}
 
-			J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass);
+			/*J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass);
 			if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "InnerClass") || J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "MainClass"))
 			{
 				printf("My log array: th=%zu, class=%.*s, ptr=%p, cnt=%u, len=%u, size=%lu\n",
@@ -143,7 +160,9 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, bool compre
 					*accessCount,
 					arrayLen,
 					objectHeaderSize + arrayLen * J9ARRAYCLASS_GET_STRIDE(clazz));
-			}
+			}*/
+
+			objectHeaderSize += arrayLen * J9ARRAYCLASS_GET_STRIDE(clazz);
 
 			//printf(
 			fprintf(_dump_fout,
@@ -154,7 +173,7 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, bool compre
 				objectPtr,
 				*accessCount,
 				arrayLen,
-				objectHeaderSize + arrayLen * J9ARRAYCLASS_GET_STRIDE(clazz));
+				objectHeaderSize);
 		}
 		else
 		{
@@ -166,7 +185,7 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, bool compre
 
 			// clazz->romClass->romSize,
 
-			J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(clazz->romClass);
+			/*J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(clazz->romClass);
 			if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "InnerClass") || J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "MainClass"))
 			{
 				printf("My log obj: th=%zu, class=%.*s, ptr=%p, cnt=%u, size=%zu\n",
@@ -176,8 +195,9 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, bool compre
 					objectPtr,
 					*accessCount,
 					objectHeaderSize + clazz->totalInstanceSize);
-			}
-			
+			}*/
+
+			objectHeaderSize += clazz->totalInstanceSize;
 			
 			//printf(
 			fprintf(_dump_fout,
@@ -187,8 +207,12 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, bool compre
 				J9UTF8_DATA(J9ROMCLASS_CLASSNAME(clazz->romClass)),
 				objectPtr,
 				*accessCount,
-				objectHeaderSize + clazz->totalInstanceSize);
+				objectHeaderSize);
 		}
+
+		uint8_t age = *accessCount >> 28;
+		if (age != 0xF) ++age;
+		*accessCount = (*accessCount & 0x0FFFFFFF) | (age << 28);
 	}
 }
 
@@ -303,22 +327,26 @@ MM_MarkingDelegate::mainSetupForGC(MM_EnvironmentBase *env)
 	_collectStringConstantsEnabled = _extensions->collectStringConstants;
 
 	auto cur_time = std::time(nullptr);
-	if (cur_time - _dump_last_time > 10)
+	if (_dump_freq && ((cur_time - _dump_last_time > _dump_freq) || _dump_skipped_dumps >= _dump_freq))
 	{
 		_dump_now = true;
+		_dump_skipped_dumps = 0;
 		_dump_last_time = cur_time;
 		// printf(
 		fprintf(_dump_fout,
-			"\n My log: Dump Snapshot #%d\n", _dump_last_id++);
+			"\n My log: Dump Snapshot #%d\n", _dump_last_id);
 		printf("\n My log: Dump Snapshot #%d\n", _dump_last_id++);
 	}
 	else
 	{
 		_dump_now = false;
-		// printf(
-		fprintf(_dump_fout,
-			"\n My log: Skipping Snapshot #%d\n", _dump_last_id);
-		printf("\n My log: Skipping Snapshot #%d\n", _dump_last_id);
+		++_dump_skipped_dumps += 1;
+		if (_dump_freq)
+		{
+			fprintf(_dump_fout,
+				"\n My log: Skipping Snapshot #%d\n", _dump_last_id);
+			printf("\n My log: Skipping Snapshot #%d\n", _dump_last_id);
+		}
 	}
 }
 
