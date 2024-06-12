@@ -89,16 +89,17 @@ MM_MarkingDelegate::initialize(MM_EnvironmentBase *env, MM_MarkingScheme *markin
 	std::ignore = tmpnam(file_name);
 
 	_dump_ptr.reset(fopen(file_name, "w"));
-	if (_extensions->dumpObjCountFreq)
-	{
-		// set to zero at config level to disable turns into -1
-		// enabled by default with zero
-		_dump_freq = _extensions->dumpObjCountFreq == -1 ? 0 : _extensions->dumpObjCountFreq;
-	}
-	else
-	{
-		_dump_freq = 10;
-	}
+	// if (_extensions->dumpObjCountFreq)
+	// {
+	// 	// set to zero at config level to disable turns into -1
+	// 	// enabled by default with zero
+	// 	_dump_freq = _extensions->dumpObjCountFreq == -1 ? 0 : _extensions->dumpObjCountFreq;
+	// }
+	// else
+	// {
+	// 	_dump_freq = 10;
+	// }
+	_dump_freq = 10;
 	_dump_fout = _dump_ptr.get();
 
 	printf("My log: initialize %s, this=%p with dump_freq=%d\n", file_name, this, _dump_freq);
