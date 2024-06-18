@@ -213,10 +213,10 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, bool compre
 				*accessCount,
 				objectHeaderSize);
 
-			uint8_t age = *accessCount >> 28;
-			if (age != 0xF) ++age;
-			// *accessCount = (*accessCount & 0x0FFFFFFF) * exp(-0.05 * _dump_time_elapsed);
-			*accessCount = (*accessCount & 0x0FFFFFFF) | (age << 28);
+			// uint8_t age = *accessCount >> 28;
+			// if (age != 0xF) ++age;
+			// // *accessCount = (*accessCount & 0x0FFFFFFF) * exp(-0.05 * _dump_time_elapsed);
+			// *accessCount = (*accessCount & 0x0FFFFFFF) | (age << 28);
 		}
 	}
 }

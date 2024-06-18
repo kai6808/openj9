@@ -90,7 +90,7 @@ inline void IncrementAccessCounter(J9VMThread *vmThread, j9object_t srcObject, i
 		U_32 *accessCount = J9OAB_MIXEDOBJECT_EA(srcObject, clazz->accessCountOffset, U_32);
 		if (*accessCount != 0x0FFFFFFF) ++(*accessCount);
 
-		/*J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(clazz->romClass);
+		J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(clazz->romClass);
 		if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "InnerClass") || J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "MainClass"))
 		{
 			printf("My log obj increment for %p at %lu with value=%u for class=%.*s from stmt=%d\n",
@@ -99,7 +99,7 @@ inline void IncrementAccessCounter(J9VMThread *vmThread, j9object_t srcObject, i
 				J9UTF8_DATA(J9ROMCLASS_CLASSNAME(clazz->romClass)),
 				stmt
 			);
-		}*/
+		}
 	}
 }
 
