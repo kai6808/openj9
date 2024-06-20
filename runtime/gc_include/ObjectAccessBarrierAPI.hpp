@@ -93,7 +93,7 @@ inline void IncrementAccessCounter(J9VMThread *vmThread, j9object_t srcObject, i
 		J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(clazz->romClass);
 		if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "InnerClass") || J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "MainClass"))
 		{
-			printf("My log obj increment for %p at %lu with value=%u for class=%.*s from stmt=%d\n",
+			printf("[IncrementAccessCounter]: obj increment for %p at %lu with value=%u for class=%.*s from stmt=%d\n",
 				srcObject, clazz->accessCountOffset, *accessCount & 0x0FFFFFFF,
 				J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(clazz->romClass)),
 				J9UTF8_DATA(J9ROMCLASS_CLASSNAME(clazz->romClass)),

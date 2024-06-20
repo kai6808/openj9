@@ -97,7 +97,7 @@ private:
 protected:
 
 public:
-	void dumpObjectCounter(omrobjectptr_t objectPtr, bool compressObjectReferences);
+	void dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *clazz, bool compressObjectReferences);
 	MM_MarkingDelegate()
 		: _omrVM(NULL)
 		, _extensions(NULL)
@@ -207,7 +207,7 @@ public:
 					env->_workStack.push(env, (void *)clazz->classObject);
 					env->_markStats._objectsMarked += 1;
 
-					dumpObjectCounter(clazz->classObject, env->compressObjectReferences());
+					dumpObjectCounter(objectPtr, clazz, env->compressObjectReferences());
 				}
 			}
 		}

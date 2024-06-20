@@ -78,7 +78,6 @@ MM_MarkingDelegate::initialize(MM_EnvironmentBase *env, MM_MarkingScheme *markin
 #endif /* defined(J9VM_GC_DYNAMIC_CLASS_UNLOADING) */
 
 	// dump stats
-	//
 	char file_name[40];
 	_dump_last_time = 0;
 	_dump_last_id = 0;
@@ -102,19 +101,19 @@ MM_MarkingDelegate::initialize(MM_EnvironmentBase *env, MM_MarkingScheme *markin
 	_dump_freq = 10;
 	_dump_fout = _dump_ptr.get();
 
-	printf("My log: initialize %s, this=%p with dump_freq=%d\n", file_name, this, _dump_freq);
+	printf("[initialize]: dump file='%s', dump frequency=%d\n", file_name, _dump_freq);
 
 	return true;
 }
 
-void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, bool compressObjectReferences)
+void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *clazz, bool compressObjectReferences)
 {
 	if (_dump_now)
 	{
 		U_32 *accessCount;
 		size_t objectHeaderSize;
 
-		J9Class *clazz = J9GC_J9OBJECT_CLAZZ_CMP(objectPtr, compressObjectReferences);
+		// J9Class *clazz = J9GC_J9OBJECT_CLAZZ_CMP(objectPtr, compressObjectReferences);
 		if (clazz->accessCountOffset == (UDATA)-1)
 		{
 			assert(J9ROMCLASS_IS_ARRAY(clazz->romClass));
@@ -186,33 +185,17 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, bool compre
 
 			accessCount = (U_32*)((U_8 *)(objectPtr) + clazz->accessCountOffset);
 			objectHeaderSize = compressObjectReferences ? sizeof(J9ObjectCompressed) : sizeof(J9ObjectFull);
-
-			// clazz->romClass->romSize,
-
-			/*J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(clazz->romClass);
-			if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "InnerClass") || J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "MainClass"))
-			{
-				printf("My log obj: th=%zu, class=%.*s, ptr=%p, cnt=%u, size=%zu\n",
-					std::hash<std::thread::id>()(std::this_thread::get_id()),
-					J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(clazz->romClass)),
-					J9UTF8_DATA(J9ROMCLASS_CLASSNAME(clazz->romClass)),
-					objectPtr,
-					*accessCount,
-					objectHeaderSize + clazz->totalInstanceSize);
-			}*/
-
 			objectHeaderSize += clazz->totalInstanceSize;
-			
-			//printf(
+
 			fprintf(_dump_fout,
-				"My log obj: th=%zu, class=%.*s, ptr=%p, cnt=%u, size=%zu\n",
-				std::hash<std::thread::id>()(std::this_thread::get_id()),
+				"[Non-array obj]: name=%.*s, ptr=%p, cnt=%u, size=%zu\n",
 				J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(clazz->romClass)),
 				J9UTF8_DATA(J9ROMCLASS_CLASSNAME(clazz->romClass)),
 				objectPtr,
 				*accessCount,
 				objectHeaderSize);
 
+			// TODO: dealing with exponential decay.
 			// uint8_t age = *accessCount >> 28;
 			// if (age != 0xF) ++age;
 			// // *accessCount = (*accessCount & 0x0FFFFFFF) * exp(-0.05 * _dump_time_elapsed);
@@ -338,10 +321,9 @@ MM_MarkingDelegate::mainSetupForGC(MM_EnvironmentBase *env)
 		_dump_skipped_dumps = 0;
 		_dump_time_elapsed = cur_time - _dump_last_time;
 		_dump_last_time = cur_time;
-		// printf(
 		fprintf(_dump_fout,
-			"\n My log: Dump Snapshot #%d\n", _dump_last_id);
-		printf("\n My log: Dump Snapshot #%d\n", _dump_last_id++);
+			"\n [mainSetupForGC]: Dump Snapshot #%d\n", _dump_last_id);
+		printf(" [mainSetupForGC]: Dump Snapshot #%d\n", _dump_last_id++);
 	}
 	else
 	{
@@ -350,8 +332,8 @@ MM_MarkingDelegate::mainSetupForGC(MM_EnvironmentBase *env)
 		if (_dump_freq)
 		{
 			fprintf(_dump_fout,
-				"\n My log: Skipping Snapshot #%d\n", _dump_last_id);
-			printf("\n My log: Skipping Snapshot #%d\n", _dump_last_id);
+				"\n [mainSetupForGC]: Skipping Snapshot #%d\n", _dump_last_id);
+			printf(" [mainSetupForGC]: Skipping Snapshot #%d\n", _dump_last_id);
 		}
 	}
 }
