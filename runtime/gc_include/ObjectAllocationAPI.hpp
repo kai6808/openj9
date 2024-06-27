@@ -93,6 +93,7 @@ private:
 			J9IndexableObjectContiguousFull *header = (J9IndexableObjectContiguousFull *)objectHeader;
 			header->clazz = (uintptr_t)arrayClass;
 			header->size = size;
+			header->accessCount = 0;
 #if defined(J9VM_ENV_DATA64)
 			if (_isIndexableDataAddrPresent) {
 				((J9IndexableObjectWithDataAddressContiguousFull *)header)->dataAddr = dataAddr;
@@ -121,6 +122,7 @@ private:
 			header->clazz = (uintptr_t)arrayClass;
 			header->mustBeZero = 0;
 			header->size = 0;
+			header->accessCount = 0;
 #if defined(J9VM_ENV_DATA64)
 			if (_isIndexableDataAddrPresent) {
 				((J9IndexableObjectWithDataAddressDiscontiguousFull *)header)->dataAddr = NULL;

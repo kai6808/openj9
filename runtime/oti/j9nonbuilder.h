@@ -3064,7 +3064,7 @@ typedef struct J9ObjectCompressed {
 
 typedef struct J9ObjectFull {
 	UDATA clazz;
-	uint32_t accessCount;
+	// uint32_t accessCount;
 } J9ObjectFull;
 
 typedef struct J9IndexableObject {
