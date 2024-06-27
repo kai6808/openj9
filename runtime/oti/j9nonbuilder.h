@@ -3059,6 +3059,7 @@ typedef struct J9Object {
 
 typedef struct J9ObjectCompressed {
 	U_32 clazz;
+	// uint32_t accessCount;
 } J9ObjectCompressed;
 
 typedef struct J9ObjectFull {
@@ -3116,7 +3117,7 @@ typedef struct J9IndexableObjectDiscontiguousFull {
 	UDATA clazz;
 	U_32 mustBeZero;
 	U_32 size;
-	// uint32_t accessCount;
+	uint32_t accessCount;
 #if !defined(J9VM_ENV_DATA64)
 	U_32 padding;
 #endif /* !J9VM_ENV_DATA64 */

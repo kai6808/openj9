@@ -134,8 +134,6 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 				else
 				{
 					// accessCount = &((J9IndexableObjectContiguousCompressed *)objectPtr)->accessCount;
-					
-					// accessCount = &((J9IndexableObjectContiguousCompressed *)objectPtr)->accessCount;
 					objectHeaderSize = sizeof(J9IndexableObjectContiguousCompressed);
 					arraytype = 2;
 				}
@@ -145,7 +143,7 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 				arrayLen = ((J9IndexableObjectContiguousFull *)objectPtr)->size;
 				if (0 == arrayLen)
 				{
-					// accessCount = &((J9IndexableObjectDiscontiguousFull *)objectPtr)->padding;
+					accessCount = &((J9IndexableObjectDiscontiguousFull *)objectPtr)->accessCount;
 					arrayLen = ((J9IndexableObjectDiscontiguousFull *)objectPtr)->size;
 					objectHeaderSize = sizeof(J9IndexableObjectDiscontiguousFull);
 					arraytype = 3;
@@ -174,7 +172,7 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 
 			// TODO: Object counters for arrays are overwritten in high bits with something else
 			//printf(
-			if (arraytype == 4) {
+			if (arraytype == 4 or arraytype == 3) {
 				fprintf(_dump_fout,
 				"My log array: class=%.*s, ptr=%p, cnt=%u, len=%u, size=%lu, array_type=%u\n",
 				J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
