@@ -93,8 +93,8 @@ public:
 	MM_StringTable* stringTable; /**< top level String Table structure (internally organized as a set of hash sub-tables */
 
 	void* gcchkExtensions;
-
-	void* tgcExtensions;
+	int dumpObjCountFreq = 0;
+	void *tgcExtensions;
 	J9MemoryManagerVerboseInterface verboseFunctionTable;
 
 #if defined(J9VM_GC_FINALIZATION)
