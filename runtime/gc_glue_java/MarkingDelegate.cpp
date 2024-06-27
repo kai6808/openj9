@@ -174,7 +174,7 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 			//printf(
 			if (arraytype == 4 or arraytype == 3) {
 				fprintf(_dump_fout,
-				"My log array: class=%.*s, ptr=%p, cnt=%u, len=%u, size=%lu, array_type=%u\n",
+				"[Non-compressed array obj]: name=%.*s, ptr=%p, cnt=%u, len=%u, header_size=%lu, array_type=%u\n",
 				J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
 				J9UTF8_DATA(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
 				objectPtr,
@@ -194,7 +194,7 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 			objectHeaderSize += clazz->totalInstanceSize;
 
 			fprintf(_dump_fout,
-				"[Non-array obj]: name=%.*s, ptr=%p, cnt=%u, size=%zu\n",
+				"[Non-array obj]: name=%.*s, ptr=%p, cnt=%u, header_size=%zu\n",
 				J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(clazz->romClass)),
 				J9UTF8_DATA(J9ROMCLASS_CLASSNAME(clazz->romClass)),
 				objectPtr,
