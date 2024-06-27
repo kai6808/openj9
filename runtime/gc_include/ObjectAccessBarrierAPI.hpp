@@ -80,7 +80,7 @@ inline void IncrementAccessCounter(J9VMThread *vmThread, j9object_t srcObject, i
 				// accessCount = &((J9IndexableObjectDiscontiguousFull *)srcObject)->accessCount;
 			}
 			else {
-				accessCount = &((J9IndexableObjectContiguousFull*)srcObject)->padding;
+				accessCount = &((J9IndexableObjectContiguousFull*)srcObject)->accessCount;
 				if ((*accessCount != 0x0FFFFFFF)) ++(*accessCount);
 
 				J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass);

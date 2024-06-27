@@ -152,7 +152,7 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 				}
 				else
 				{
-					accessCount = &((J9IndexableObjectContiguousFull *)objectPtr)->padding;
+					accessCount = &((J9IndexableObjectContiguousFull *)objectPtr)->accessCount;
 					objectHeaderSize = sizeof(J9IndexableObjectContiguousFull);
 					arraytype = 4;
 				}
