@@ -170,8 +170,6 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 
 			objectHeaderSize += arrayLen * J9ARRAYCLASS_GET_STRIDE(clazz);
 
-			// TODO: Object counters for arrays are overwritten in high bits with something else
-			//printf(
 			if (arraytype == 4 or arraytype == 3) {
 				fprintf(_dump_fout,
 				"[Non-compressed array obj]: name=%.*s, ptr=%p, cnt=%u, len=%u, header_size=%lu, array_type=%u\n",
