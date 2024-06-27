@@ -53,35 +53,50 @@ inline void IncrementAccessCounter(J9VMThread *vmThread, j9object_t srcObject, i
 
 	if (clazz->accessCountOffset == (UDATA)-1)
 	{
-		// TODO: This doesn't work.
 		assert(J9ROMCLASS_IS_ARRAY(clazz->romClass));
 
-		/*U_32 *accessCount;
+		U_32 *accessCount;
 		if (J9VMTHREAD_COMPRESS_OBJECT_REFERENCES(vmThread))
 		{
-			U_32 size = ((J9IndexableObjectContiguousCompressed *)srcObject)->size;
-			if (0 == size) accessCount = &((J9IndexableObjectDiscontiguousCompressed *)srcObject)->accessCount;
-			else accessCount = &((J9IndexableObjectContiguousCompressed *)srcObject)->accessCount;
+			// U_32 size = ((J9IndexableObjectContiguousCompressed *)srcObject)->size;
+			// if (0 == size) accessCount = &((J9IndexableObjectDiscontiguousCompressed *)srcObject)->accessCount;
+			// else accessCount = &((J9IndexableObjectContiguousCompressed *)srcObject)->accessCount;
+			// if ((*accessCount != 0x0FFFFFFF)) ++(*accessCount);
+			// J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass);
+			// if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "InnerClass") || J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "MainClass"))
+			// {
+			// 	printf("My log array increment for %p with value=%u for class=%.*s from stmt=%d\n",
+			// 		srcObject, *accessCount & 0x0FFFFFFF,
+			// 		J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
+			// 		J9UTF8_DATA(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
+			// 		stmt
+			// 	);
+			// }
 		}
 		else
 		{
 			U_32 size = ((J9IndexableObjectContiguousFull *)srcObject)->size;
-			if (0 == size) accessCount = &((J9IndexableObjectDiscontiguousFull *)srcObject)->accessCount;
-			else accessCount = &((J9IndexableObjectContiguousFull *)srcObject)->accessCount;
+			if (0 == size) {
+				// accessCount = &((J9IndexableObjectDiscontiguousFull *)srcObject)->accessCount;
+			}
+			else {
+				accessCount = &((J9IndexableObjectContiguousFull*)srcObject)->padding;
+				if ((*accessCount != 0x0FFFFFFF)) ++(*accessCount);
+
+				J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass);
+				if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "InnerClass") || J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "MainClass"))
+				{
+					printf("My log array increment for %p with value=%u for class=%.*s from stmt=%d\n",
+						srcObject, 
+						*accessCount & 0x0FFFFFFF,
+						J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
+						J9UTF8_DATA(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
+						stmt
+					);
+				}
+			}
+			// Compressed array: Not supported yet!
 		}
-
-		if ((*accessCount != 0x0FFFFFFF)) ++(*accessCount);*/
-
-		/*J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass);
-		if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "InnerClass") || J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "MainClass"))
-		{
-			printf("My log array increment for %p with value=%u for class=%.*s from stmt=%d\n",
-				srcObject, *accessCount & 0x0FFFFFFF,
-				J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
-				J9UTF8_DATA(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
-				stmt
-			);
-		}*/
 	}
 	else
 	{

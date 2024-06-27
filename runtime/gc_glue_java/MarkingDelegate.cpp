@@ -98,7 +98,7 @@ MM_MarkingDelegate::initialize(MM_EnvironmentBase *env, MM_MarkingScheme *markin
 	// {
 	// 	_dump_freq = 10;
 	// }
-	_dump_freq = 10;
+	_dump_freq = 1;
 	_dump_fout = _dump_ptr.get();
 
 	printf("[initialize]: dump file='%s', dump frequency=%d\n", file_name, _dump_freq);
@@ -110,7 +110,7 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 {
 	if (_dump_now)
 	{
-		U_32 *accessCount;
+		U_32 *accessCount = NULL;
 		size_t objectHeaderSize;
 
 		// J9Class *clazz = J9GC_J9OBJECT_CLAZZ_CMP(objectPtr, compressObjectReferences);
@@ -120,6 +120,7 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 			// dealing with arrays
 
 			U_32 arrayLen;
+			U_32 arraytype = 0;
 			if (compressObjectReferences)
 			{
 				arrayLen = ((J9IndexableObjectContiguousCompressed *)objectPtr)->size;
@@ -128,11 +129,15 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 					// accessCount = &((J9IndexableObjectDiscontiguousCompressed *)objectPtr)->accessCount;
 					arrayLen = ((J9IndexableObjectDiscontiguousCompressed *)objectPtr)->size;
 					objectHeaderSize = sizeof(J9IndexableObjectDiscontiguousCompressed);
+					arraytype = 1;
 				}
 				else
 				{
 					// accessCount = &((J9IndexableObjectContiguousCompressed *)objectPtr)->accessCount;
+					
+					// accessCount = &((J9IndexableObjectContiguousCompressed *)objectPtr)->accessCount;
 					objectHeaderSize = sizeof(J9IndexableObjectContiguousCompressed);
+					arraytype = 2;
 				}
 			}
 			else
@@ -140,17 +145,18 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 				arrayLen = ((J9IndexableObjectContiguousFull *)objectPtr)->size;
 				if (0 == arrayLen)
 				{
-					// accessCount = &((J9IndexableObjectDiscontiguousFull *)objectPtr)->accessCount;
+					// accessCount = &((J9IndexableObjectDiscontiguousFull *)objectPtr)->padding;
 					arrayLen = ((J9IndexableObjectDiscontiguousFull *)objectPtr)->size;
 					objectHeaderSize = sizeof(J9IndexableObjectDiscontiguousFull);
+					arraytype = 3;
 				}
 				else
 				{
-					// accessCount = &((J9IndexableObjectContiguousFull *)objectPtr)->accessCount;
+					accessCount = &((J9IndexableObjectContiguousFull *)objectPtr)->padding;
 					objectHeaderSize = sizeof(J9IndexableObjectContiguousFull);
+					arraytype = 4;
 				}
 			}
-
 			/*J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass);
 			if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "InnerClass") || J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "MainClass"))
 			{
@@ -168,15 +174,17 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 
 			// TODO: Object counters for arrays are overwritten in high bits with something else
 			//printf(
-			fprintf(_dump_fout,
-				"My log array: th=%zu, class=%.*s, ptr=%p, cnt=0, len=%u, size=%lu\n",
-				std::hash<std::thread::id>()(std::this_thread::get_id()),
+			if (arraytype == 4) {
+				fprintf(_dump_fout,
+				"My log array: class=%.*s, ptr=%p, cnt=%u, len=%u, size=%lu, array_type=%u\n",
 				J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
 				J9UTF8_DATA(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
 				objectPtr,
-				// *accessCount,
+				*accessCount,
 				arrayLen,
-				objectHeaderSize);
+				objectHeaderSize,
+				arraytype);
+			}
 		}
 		else
 		{
@@ -333,7 +341,7 @@ MM_MarkingDelegate::mainSetupForGC(MM_EnvironmentBase *env)
 		{
 			fprintf(_dump_fout,
 				"\n [mainSetupForGC]: Skipping Snapshot #%d\n", _dump_last_id);
-			printf(" [mainSetupForGC]: Skipping Snapshot #%d\n", _dump_last_id);
+			printf(" [mainSetupForGC]: Skipping Snapshot #%d\n", _dump_last_id++);
 		}
 	}
 }
