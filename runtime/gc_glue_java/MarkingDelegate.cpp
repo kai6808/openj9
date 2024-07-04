@@ -337,7 +337,7 @@ MM_MarkingDelegate::mainSetupForGC(MM_EnvironmentBase *env)
 		{
 			fprintf(_dump_fout,
 				"\n [mainSetupForGC]: Skipping Snapshot #%d\n", _dump_last_id);
-			printf(" [mainSetupForGC]: Skipping Snapshot #%d\n", _dump_last_id++);
+			printf(" [mainSetupForGC]: Skipping Snapshot #%d\n", _dump_last_id);
 		}
 	}
 }
