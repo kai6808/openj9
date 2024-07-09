@@ -155,18 +155,23 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 					arraytype = 4;
 				}
 			}
-			/*J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass);
-			if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "InnerClass") || J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "MainClass"))
-			{
-				printf("My log array: th=%zu, class=%.*s, ptr=%p, cnt=%u, len=%u, size=%lu\n",
-					std::hash<std::thread::id>()(std::this_thread::get_id()),
-					J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
-					J9UTF8_DATA(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
-					objectPtr,
-					*accessCount,
-					arrayLen,
-					objectHeaderSize + arrayLen * J9ARRAYCLASS_GET_STRIDE(clazz));
-			}*/
+			// J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass);
+			// if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "NewMainClass") || J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "MainClass"))
+			// {
+			// 	// J9INTERFACECLASS_ITABLEMETHODCOUNT(clazz);
+			// 	printf("My log array: th=%zu, class=%.*s, ptr=%p, cnt=%u, len=%u, size=%lu\n",
+			// 		   std::hash<std::thread::id>()(std::this_thread::get_id()),
+			// 		   J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass *)clazz)->componentType->romClass)),
+			// 		   J9UTF8_DATA(J9ROMCLASS_CLASSNAME(((J9ArrayClass *)clazz)->componentType->romClass)),
+			// 		   objectPtr,
+			// 		   *accessCount,
+			// 		   arrayLen,
+			// 		   objectHeaderSize);
+			// 	printf("flattenedElementSize of J9ArrayClass = %lu\n", ((J9ArrayClass *)clazz)->flattenedElementSize);
+			// 	printf("J9ARRAYCLASS_GET_STRIDE of clazz = %lu\n", J9ARRAYCLASS_GET_STRIDE(clazz));
+			// 	printf("Total instance size = %lu\n", J9INTERFACECLASS_ITABLEMETHODCOUNT(clazz));
+			// 	printf("Nursery age = %ld\n", ((UDATA)(clazz->classObject->clazz) & 0xF0)>>4);
+			// }
 
 			objectHeaderSize += arrayLen * J9ARRAYCLASS_GET_STRIDE(clazz);
 
