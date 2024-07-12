@@ -151,6 +151,31 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 				else
 				{
 					accessCount = &((J9IndexableObjectContiguousFull *)objectPtr)->accessCount;
+
+					// TODO: dealing with multi-dimensional arrays
+					char *dataAddr = (char *)((uintptr_t)objectPtr + sizeof(J9IndexableObjectContiguousFull));
+					if (J9ROMCLASS_IS_ARRAY(((J9ArrayClass *)clazz)->componentType->romClass)) {
+						// dealing with multi-dimensional arrays
+						printf("This is a multi-dimensional array with cnt = %u, access count of array elements:", *accessCount);
+						for (size_t i = 0; i < arrayLen; i++)
+						{
+							printf(" %u", (((J9IndexableObjectContiguousFull*)(((J9FlattenedClassCache*)dataAddr)->defaultValue))->accessCount) );
+							dataAddr += (uintptr_t)J9ARRAYCLASS_GET_STRIDE(clazz);
+						}
+						printf("; ");
+					} else {
+						printf("This is a 1D array with cnt = %u; ", *accessCount);
+					}
+					// printf("\n");
+
+					// print array info
+					printf("  array name: '%.*s' ", J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)), J9UTF8_DATA(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)));
+					printf("array length: %u; ", ((J9IndexableObjectContiguousFull *)objectPtr)->size);
+					printf("stride: %lu; ", J9ARRAYCLASS_GET_STRIDE(clazz));
+					printf("object header size: %lu; ", ((J9IndexableObjectContiguousFull *)objectPtr)->size * J9ARRAYCLASS_GET_STRIDE(clazz));
+					((UDATA)((clazz)->flattenedClassCache));
+					printf("\n");
+
 					objectHeaderSize = sizeof(J9IndexableObjectContiguousFull);
 					arraytype = 4;
 				}
@@ -167,10 +192,10 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 			// 		   *accessCount,
 			// 		   arrayLen,
 			// 		   objectHeaderSize);
-			// 	printf("flattenedElementSize of J9ArrayClass = %lu\n", ((J9ArrayClass *)clazz)->flattenedElementSize);
-			// 	printf("J9ARRAYCLASS_GET_STRIDE of clazz = %lu\n", J9ARRAYCLASS_GET_STRIDE(clazz));
-			// 	printf("Total instance size = %lu\n", J9INTERFACECLASS_ITABLEMETHODCOUNT(clazz));
-			// 	printf("Nursery age = %ld\n", ((UDATA)(clazz->classObject->clazz) & 0xF0)>>4);
+			// 	// printf("flattenedElementSize of J9ArrayClass = %lu\n", ((J9ArrayClass *)clazz)->flattenedElementSize);
+			// 	// printf("J9ARRAYCLASS_GET_STRIDE of clazz = %lu\n", J9ARRAYCLASS_GET_STRIDE(clazz));
+			// 	// printf("Total instance size = %lu\n", J9INTERFACECLASS_ITABLEMETHODCOUNT(clazz));
+			// 	// printf("Nursery age = %ld\n", ((UDATA)(clazz->classObject->clazz) & 0xF0)>>4);
 			// }
 
 			objectHeaderSize += arrayLen * J9ARRAYCLASS_GET_STRIDE(clazz);
