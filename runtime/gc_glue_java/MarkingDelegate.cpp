@@ -152,7 +152,6 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 				{
 					accessCount = &((J9IndexableObjectContiguousFull *)objectPtr)->accessCount;
 
-					// TODO: dealing with multi-dimensional arrays
 					char *dataAddr = (char *)((uintptr_t)objectPtr + sizeof(J9IndexableObjectContiguousFull));
 					if (J9ROMCLASS_IS_ARRAY(((J9ArrayClass *)clazz)->componentType->romClass)) {
 						// dealing with multi-dimensional arrays
@@ -166,7 +165,6 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 					} else {
 						printf("This is a 1D array with cnt = %u; ", *accessCount);
 					}
-					// printf("\n");
 
 					// print array info
 					printf("  array name: '%.*s' ", J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)), J9UTF8_DATA(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)));
