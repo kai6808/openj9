@@ -456,6 +456,21 @@ j9gc_initialize_heap(J9JavaVM *vm, IDATA *memoryParameterTable, UDATA heapBytesR
 		goto error_no_memory;
 	}
 
+
+	// calculte the number of pages
+	UDATA numPages;
+	numPages = extensions->heap->getMaximumMemorySize() / extensions->heap->getPageSize();
+	printf("[mminit.cpp] extensions->max_memory_size: 0x%lx\n", extensions->heap->getMaximumMemorySize());
+	printf("[mminit.cpp] extensions->page_size: 0x%lx\n", extensions->heap->getPageSize());
+	printf("[mminit.cpp] numPages: 0x%lx\n", numPages);
+	vm->newHeapBase = extensions->heap->getHeapBase();
+	printf("[mminit.cpp] heap_base: %p\n", vm->newHeapBase);
+
+	// allocate an array for page access count
+	vm->pageAccessCount = (int *)calloc(numPages, sizeof(int));
+	vm->numPageCounter = numPages;
+	printf("[mminit.cpp] pageAccessCount: %p\n", vm->pageAccessCount);
+
 	extensions->dispatcher = extensions->configuration->createParallelDispatcher(&env, (omrsig_handler_fn)vm->internalVMFunctions->structuredSignalHandlerVM, vm, vm->defaultOSStackSize);
 	if (NULL == extensions->dispatcher) {
 		vm->internalVMFunctions->setErrorJ9dll(

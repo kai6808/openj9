@@ -5657,6 +5657,9 @@ typedef struct J9JavaVM {
 	struct J9RAMConstantPoolItem jclConstantPool[J9VM_VMCONSTANTPOOL_SIZE];
 	struct J9VMThread* mainThread;
 	struct J9VMThread* deadThreadList;
+	int *pageAccessCount;
+	int numPageCounter;
+	void *newHeapBase;
 	UDATA exclusiveAccessState;
 	omrthread_monitor_t classTableMutex;
 	UDATA anonClassCount;

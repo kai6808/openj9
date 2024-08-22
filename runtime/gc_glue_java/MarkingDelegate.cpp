@@ -106,7 +106,7 @@ MM_MarkingDelegate::initialize(MM_EnvironmentBase *env, MM_MarkingScheme *markin
 	return true;
 }
 
-void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *clazz, bool compressObjectReferences)
+void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *clazz, bool compressObjectReferences, MM_EnvironmentBase *env)
 {
 	if (_dump_now)
 	{
@@ -152,27 +152,26 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 				{
 					accessCount = &((J9IndexableObjectContiguousFull *)objectPtr)->accessCount;
 
-					char *dataAddr = (char *)((uintptr_t)objectPtr + sizeof(J9IndexableObjectContiguousFull));
-					if (J9ROMCLASS_IS_ARRAY(((J9ArrayClass *)clazz)->componentType->romClass)) {
-						// dealing with multi-dimensional arrays
-						printf("This is a multi-dimensional array with cnt = %u, access count of array elements:", *accessCount);
-						for (size_t i = 0; i < arrayLen; i++)
-						{
-							printf(" %u", (((J9IndexableObjectContiguousFull*)(((J9FlattenedClassCache*)dataAddr)->defaultValue))->accessCount) );
-							dataAddr += (uintptr_t)J9ARRAYCLASS_GET_STRIDE(clazz);
-						}
-						printf("; ");
-					} else {
-						printf("This is a 1D array with cnt = %u; ", *accessCount);
-					}
+					// char *dataAddr = (char *)((uintptr_t)objectPtr + sizeof(J9IndexableObjectContiguousFull));
+					// if (J9ROMCLASS_IS_ARRAY(((J9ArrayClass *)clazz)->componentType->romClass)) {
+					// 	// dealing with multi-dimensional arrays
+					// 	printf("This is a multi-dimensional array with cnt = %u, access count of array elements:", *accessCount);
+					// 	for (size_t i = 0; i < arrayLen; i++)
+					// 	{
+					// 		printf(" %u", (((J9IndexableObjectContiguousFull*)(((J9FlattenedClassCache*)dataAddr)->defaultValue))->accessCount) );
+					// 		dataAddr += (uintptr_t)J9ARRAYCLASS_GET_STRIDE(clazz);
+					// 	}
+					// 	printf("; ");
+					// } else {
+					// 	printf("This is a 1D array with cnt = %u; ", *accessCount);
+					// }
 
-					// print array info
-					printf("  array name: '%.*s' ", J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)), J9UTF8_DATA(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)));
-					printf("array length: %u; ", ((J9IndexableObjectContiguousFull *)objectPtr)->size);
-					printf("stride: %lu; ", J9ARRAYCLASS_GET_STRIDE(clazz));
-					printf("object header size: %lu; ", ((J9IndexableObjectContiguousFull *)objectPtr)->size * J9ARRAYCLASS_GET_STRIDE(clazz));
-					((UDATA)((clazz)->flattenedClassCache));
-					printf("\n");
+					// // print array info
+					// printf(" array name: '%.*s' ", J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)), J9UTF8_DATA(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)));
+					// printf("array length: %u; ", ((J9IndexableObjectContiguousFull *)objectPtr)->size);
+					// printf("stride: %lu; ", J9ARRAYCLASS_GET_STRIDE(clazz));
+					// printf("object header size: %lu; ", ((J9IndexableObjectContiguousFull *)objectPtr)->size * J9ARRAYCLASS_GET_STRIDE(clazz));
+					// printf("\n");
 
 					objectHeaderSize = sizeof(J9IndexableObjectContiguousFull);
 					arraytype = 4;
@@ -208,6 +207,21 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 				arrayLen,
 				objectHeaderSize,
 				arraytype);
+
+				printf("[Non-compressed array obj]: name=%.*s, ptr=%p, cnt=%u, len=%u, header_size=%lu, array_type=%u\n",	J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
+				J9UTF8_DATA(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
+				objectPtr,
+				*accessCount,
+				arrayLen,
+				objectHeaderSize,
+				arraytype);
+
+				// uintptr_t actualAddrValue = (uintptr_t)objectPtr + (uintptr_t)objectHeaderSize;
+				// J9JavaVM * javaVM = (J9JavaVM*)env->getLanguageVM();
+				// uintptr_t heapBaseValue = (uintptr_t)javaVM->heapBase;
+				// int page_idx = (int)((actualAddrValue - heapBaseValue) / 0x1000);
+				// int pageAccessCount = javaVM->pageAccessCount[page_idx];
+				// printf("[Non-compressed array obj] Page idx = %d/%d, Page access count = %d\n", page_idx, javaVM->numPageCounter, pageAccessCount);
 			}
 		}
 		else
@@ -219,6 +233,26 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 			objectHeaderSize = compressObjectReferences ? sizeof(J9ObjectCompressed) : sizeof(J9ObjectFull);
 			objectHeaderSize += clazz->totalInstanceSize;
 
+			// if (!compressObjectReferences) {
+			// 	if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(J9ROMCLASS_CLASSNAME(clazz->romClass)), J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(clazz->romClass)), "NewMainClass") || J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(J9ROMCLASS_CLASSNAME(clazz->romClass)), J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(clazz->romClass)), "MainClass")) {
+			// 		// J9ObjectFull *obj_header = (J9ObjectFull *)objectPtr;
+			// 		uint8_t * obj_header_new = (uint8_t *)objectPtr;
+			// 		printf("\tFor main class, header size is %ld, %ld\n", sizeof(J9ObjectFull), clazz->totalInstanceSize);
+			// 		printf("\tvalue is %d, %d, %d, %d, %d, %d, %d, %d, %d\n", (int)obj_header_new[0], (int)obj_header_new[1], (int)obj_header_new[2], (int)obj_header_new[3], (int)obj_header_new[4], (int)obj_header_new[5], (int)obj_header_new[6], (int)obj_header_new[7], (int)obj_header_new[8]);
+			// 		obj_header_new += sizeof(J9ObjectFull);
+			// 		printf("\tvalue is %d, %d, %d, %d, %d\n", (int)obj_header_new[0], (int)obj_header_new[1], (int)obj_header_new[2], (int)obj_header_new[3], (int)obj_header_new[4]);
+			// 		obj_header_new += clazz->totalInstanceSize;
+			// 		printf("\tvalue is %d, %d, %d, %d, %d\n", (int)obj_header_new[0], (int)obj_header_new[1], (int)obj_header_new[2], (int)obj_header_new[3], (int)obj_header_new[4]);
+			// 	}
+			// }
+			
+			// printf("[Non-indexable obj]: name=%.*s, ptr=%p, cnt=%u, size=%zu\n",
+			// 	J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(clazz->romClass)),
+			// 	J9UTF8_DATA(J9ROMCLASS_CLASSNAME(clazz->romClass)),
+			// 	objectPtr,
+			// 	*accessCount,
+			// 	objectHeaderSize);
+
 			fprintf(_dump_fout,
 				"[Non-array obj]: name=%.*s, ptr=%p, cnt=%u, header_size=%zu\n",
 				J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(clazz->romClass)),
@@ -226,6 +260,19 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 				objectPtr,
 				*accessCount,
 				objectHeaderSize);
+			printf("[Non-array obj]: name=%.*s, ptr=%p, cnt=%u, header_size=%zu\n",
+				J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(clazz->romClass)),
+				J9UTF8_DATA(J9ROMCLASS_CLASSNAME(clazz->romClass)),
+				objectPtr,
+				*accessCount,
+				objectHeaderSize);
+
+			// uintptr_t actualAddrValue = (uintptr_t)objectPtr + (uintptr_t)objectHeaderSize;
+			// J9JavaVM * javaVM = (J9JavaVM*)env->getLanguageVM();
+			// uintptr_t heapBaseValue = (uintptr_t)javaVM->heapBase;
+			// int page_idx = (int)((actualAddrValue - heapBaseValue) / 0x1000);
+			// int pageAccessCount = javaVM->pageAccessCount[page_idx];
+			// printf("[Non-array obj] Page idx = %d/%d, Page access count = %d\n", page_idx, javaVM->numPageCounter, pageAccessCount);
 
 			// TODO: dealing with exponential decay.
 			// uint8_t age = *accessCount >> 28;
