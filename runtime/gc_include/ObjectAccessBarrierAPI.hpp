@@ -80,19 +80,26 @@ inline void IncrementAccessCounter(J9VMThread *vmThread, j9object_t srcObject, i
 			}
 			if ((*accessCount != 0x0FFFFFFF)) ++(*accessCount);
 
-			J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass);
-			if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "NewMainClass") || J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "MainClass"))
-			{
-				printf("[IncrementAccessCounter]: array obj increment for %p with value=%u for class=%.*s from stmt=%d\n",
-					srcObject, 
-					*accessCount & 0x0FFFFFFF,
-					J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
-					J9UTF8_DATA(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
-					stmt
-				);
-				printf("[PAC] page_idx=%d/%d, srcObj(%p), actualAdd(%p),  pageAccessCount=%d\n", page_idx, vmThread->javaVM->numPageCounter, srcObject, actualAddress, vmThread->javaVM->pageAccessCount[page_idx]);
+			printf("[IncrementAccessCounter]: array obj(%p), actualAddr(%p), page_idx(%d/%d), obj_cnt(%u), page_cnt(%d)\n",
+				srcObject, 
+				actualAddress,
+				page_idx, vmThread->javaVM->numPageCounter,
+				*accessCount & 0x0FFFFFFF, vmThread->javaVM->pageAccessCount[page_idx]
+			);
 
-			}
+			// J9UTF8* romClassName = J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass);
+			// if (J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "NewMainClass") || J9UTF8_LITERAL_EQUALS(J9UTF8_DATA(romClassName), J9UTF8_LENGTH(romClassName), "MainClass"))
+			// {
+			// 	printf("[IncrementAccessCounter]: array obj increment for %p with value=%u for class=%.*s from stmt=%d\n",
+			// 		srcObject, 
+			// 		*accessCount & 0x0FFFFFFF,
+			// 		J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
+			// 		J9UTF8_DATA(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
+			// 		stmt
+			// 	);
+			// 	printf("[PAC] page_idx=%d/%d, srcObj(%p), actualAdd(%p),  pageAccessCount=%d\n", page_idx, vmThread->javaVM->numPageCounter, srcObject, actualAddress, vmThread->javaVM->pageAccessCount[page_idx]);
+
+			// }
 		}
 	}
 	else
@@ -101,6 +108,12 @@ inline void IncrementAccessCounter(J9VMThread *vmThread, j9object_t srcObject, i
 
 		U_32 *accessCount = J9OAB_MIXEDOBJECT_EA(srcObject, clazz->accessCountOffset, U_32);
 		if (*accessCount != 0x0FFFFFFF) ++(*accessCount);
+
+		printf("[IncrementAccessCounter]: non-array obj(%p), page_idx(%d/%d), obj_cnt(%u), page_cnt(%d)\n",
+			srcObject, page_idx, vmThread->javaVM->numPageCounter,
+			*accessCount & 0x0FFFFFFF,
+			vmThread->javaVM->pageAccessCount[page_idx]
+		);
 	}
 }
 
