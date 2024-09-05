@@ -208,13 +208,13 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 				objectHeaderSize,
 				arraytype);
 
-				printf("[Non-compressed array obj]: name=%.*s, ptr=%p, cnt=%u, len=%u, header_size=%lu, array_type=%u\n",	J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
-				J9UTF8_DATA(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
-				objectPtr,
-				*accessCount,
-				arrayLen,
-				objectHeaderSize,
-				arraytype);
+				// printf("[Non-compressed array obj]: name=%.*s, ptr=%p, cnt=%u, len=%u, header_size=%lu, array_type=%u\n",	J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
+				// J9UTF8_DATA(J9ROMCLASS_CLASSNAME(((J9ArrayClass*)clazz)->componentType->romClass)),
+				// objectPtr,
+				// *accessCount,
+				// arrayLen,
+				// objectHeaderSize,
+				// arraytype);
 
 				// uintptr_t actualAddrValue = (uintptr_t)objectPtr + (uintptr_t)objectHeaderSize;
 				// J9JavaVM * javaVM = (J9JavaVM*)env->getLanguageVM();
@@ -260,12 +260,12 @@ void MM_MarkingDelegate::dumpObjectCounter(omrobjectptr_t objectPtr, J9Class *cl
 				objectPtr,
 				*accessCount,
 				objectHeaderSize);
-			printf("[Non-array obj]: name=%.*s, ptr=%p, cnt=%u, header_size=%zu\n",
-				J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(clazz->romClass)),
-				J9UTF8_DATA(J9ROMCLASS_CLASSNAME(clazz->romClass)),
-				objectPtr,
-				*accessCount,
-				objectHeaderSize);
+			// printf("[Non-array obj]: name=%.*s, ptr=%p, cnt=%u, header_size=%zu\n",
+			// 	J9UTF8_LENGTH(J9ROMCLASS_CLASSNAME(clazz->romClass)),
+			// 	J9UTF8_DATA(J9ROMCLASS_CLASSNAME(clazz->romClass)),
+			// 	objectPtr,
+			// 	*accessCount,
+			// 	objectHeaderSize);
 
 			// uintptr_t actualAddrValue = (uintptr_t)objectPtr + (uintptr_t)objectHeaderSize;
 			// J9JavaVM * javaVM = (J9JavaVM*)env->getLanguageVM();
@@ -402,7 +402,7 @@ MM_MarkingDelegate::mainSetupForGC(MM_EnvironmentBase *env)
 		_dump_last_time = cur_time;
 		fprintf(_dump_fout,
 			"\n [mainSetupForGC]: Dump Snapshot #%d\n", _dump_last_id);
-		printf(" [mainSetupForGC]: Dump Snapshot #%d\n", _dump_last_id++);
+		// printf(" [mainSetupForGC]: Dump Snapshot #%d\n", _dump_last_id++);
 	}
 	else
 	{
@@ -412,7 +412,7 @@ MM_MarkingDelegate::mainSetupForGC(MM_EnvironmentBase *env)
 		{
 			fprintf(_dump_fout,
 				"\n [mainSetupForGC]: Skipping Snapshot #%d\n", _dump_last_id);
-			printf(" [mainSetupForGC]: Skipping Snapshot #%d\n", _dump_last_id);
+			// printf(" [mainSetupForGC]: Skipping Snapshot #%d\n", _dump_last_id);
 		}
 	}
 }
