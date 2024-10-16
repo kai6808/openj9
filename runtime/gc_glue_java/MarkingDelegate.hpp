@@ -73,7 +73,6 @@ private:
 
 	FILE *_dump_fout;
 	std::unique_ptr<FILE, fileCloser> _dump_ptr;
-	uint32_t          hh, mm, ss, millis;
 
 protected:
 
