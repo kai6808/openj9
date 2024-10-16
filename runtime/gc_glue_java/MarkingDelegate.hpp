@@ -36,7 +36,6 @@
 #include "ReferenceObjectScanner.hpp"
 #include "PointerArrayObjectScanner.hpp"
 
-#include "omrport.h"
 # include <cstdio> // for FILE, fopen, fclose, printf
 # include <memory> // for unique_ptr
 
@@ -53,7 +52,7 @@ struct fileCloser {
 			fclose(file);
 		}
 	}
-}
+};
 
 class MM_MarkingDelegate
 {
@@ -126,8 +125,7 @@ public:
 		}
 		_dump_fout = _dump_ptr.get();
 
-		printf("Time: %lld\n", omrtime_current_time_millis());
-		printf("My log: initializeDumpFile with name='%s', fileName");
+		printf("My log: initializeDumpFile with name='%s'\n", fileName);
 	}
 
 	/**
