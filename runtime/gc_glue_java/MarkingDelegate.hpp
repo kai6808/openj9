@@ -37,7 +37,6 @@
 #include "PointerArrayObjectScanner.hpp"
 
 #include "omrport.h"
-#include "omrtrace_internal.h"
 # include <cstdio> // for FILE, fopen, fclose, printf
 # include <memory> // for unique_ptr
 
@@ -127,8 +126,7 @@ public:
 		}
 		_dump_fout = _dump_ptr.get();
 
-		getTimestamp(omrtime_current_time_millis(), &hh, &mm, &ss, &millis);
-		printf("Time: %02u:%02u:%02u:%03u\n", hh, mm, ss, millis);
+		printf("Time: %lld\n", omrtime_current_time_millis());
 		printf("My log: initializeDumpFile with name='%s', fileName");
 	}
 
