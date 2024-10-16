@@ -36,11 +36,25 @@
 #include "ReferenceObjectScanner.hpp"
 #include "PointerArrayObjectScanner.hpp"
 
+#include "omrport.h"
+#include "omrtrace_internal.h"
+# include <cstdio> // for FILE, fopen, fclose, printf
+# include <memory> // for unique_ptr
+
 class GC_ObjectScanner;
 class MM_EnvironmentBase;
 class MM_HeapRegionDescriptorStandard;
 class MM_MarkingScheme;
 class MM_ReferenceStats;
+
+struct fileCloser {
+	void operator()(FILE *file) const {
+		if (file) {
+			printf("My log: fileCloser\n");
+			fclose(file);
+		}
+	}
+}
 
 class MM_MarkingDelegate
 {
@@ -59,6 +73,9 @@ private:
 	volatile bool _anotherClassMarkLoopIteration;	/**< Used in completeClassMark for another loop iteration request (set by the Main thread)*/
 #endif /* defined(J9VM_GC_DYNAMIC_CLASS_UNLOADING) */
 
+	FILE *_dump_fout;
+	std::unique_ptr<FILE, fileCloser> _dump_ptr;
+	uint32_t          hh, mm, ss, millis;
 
 protected:
 
@@ -98,6 +115,22 @@ public:
 	 * @return true if delegate initialized successfully
 	 */
 	bool initialize(MM_EnvironmentBase *env, MM_MarkingScheme *markingScheme);
+
+
+	void initializeDumpFile() {
+		char fileName[40];
+		std::ignore = tmpnam(fileName);
+		_dump_ptr.reset(fopen(fileName, "w"));
+		if (!_dump_ptr) {
+			printf("My log: initializeDumpFile failed to open file.");
+			return;
+		}
+		_dump_fout = _dump_ptr.get();
+
+		getTimestamp(omrtime_current_time_millis(), &hh, &mm, &ss, &millis);
+		printf("Time: %02u:%02u:%02u:%03u\n", hh, mm, ss, millis);
+		printf("My log: initializeDumpFile with name='%s', fileName");
+	}
 
 	/**
 	 * Delegate methods interfacing with MM_MarkingScheme.

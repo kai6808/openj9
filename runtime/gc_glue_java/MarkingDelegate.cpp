@@ -75,10 +75,11 @@ MM_MarkingDelegate::initialize(MM_EnvironmentBase *env, MM_MarkingScheme *markin
 #if defined(J9VM_GC_DYNAMIC_CLASS_UNLOADING)
 	_markMap = (_extensions->dynamicClassUnloading != MM_GCExtensions::DYNAMIC_CLASS_UNLOADING_NEVER) ? markingScheme->getMarkMap() : NULL;
 #endif /* defined(J9VM_GC_DYNAMIC_CLASS_UNLOADING) */
+
+	initializeDumpFile();
+
 	return true;
 }
-
-
 
 #if defined(J9VM_GC_DYNAMIC_CLASS_UNLOADING)
 void
