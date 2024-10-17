@@ -191,7 +191,10 @@ MM_MarkingDelegate::mainSetupForGC(MM_EnvironmentBase *env)
 
 
 	fprintf(_dump_fout, "GC cycle %ld\n", _extensions->globalGCStats.gcCount);
-	_markingScheme->getMarkMap()->dumpMarkMap(env, _dump_fout);
+
+	if (_markMap->isMarkMapValid()) {
+		_markMap->dumpMarkMap(env, _dump_fout);
+	}
 }
 
 void
