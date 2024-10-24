@@ -89,40 +89,57 @@ MM_MarkingDelegate::initialize(MM_EnvironmentBase *env, MM_MarkingScheme *markin
 }
 
 void
-MM_MarkingDelegate::fetchPageBits(uintptr_t *vaddr, uintptr_t numPages)
+MM_MarkingDelegate::fetchPageBits(void *vaddr, uintptr_t numPages)
 {
-	fprintf(_dump_fout, "Test for fetchPageBits\n");
+	fprintf(_dump_fout, "fetchPageBits starts: ");
 	fprintf(_dump_fout, "vaddr: %p, numPages: %ld\n", vaddr, numPages);
 
-	// TODO: Implement fetchPageBits
-	// todo: modify 4096 to page size
+	// TODO: fetch page size from JVM
+	const uint64_t PFN_FLAG = ((1ULL << 55) - 1); // PFN  (0-54 bits)
+	const uint64_t PRESENT_FLAG = 1ULL << 63; // present bit (63rd bit)
+	// const uint64_t PAGE_SIZE = 4096;
+	long PAGE_SIZE = sysconf(_SC_PAGE_SIZE);
 
-	// Open /proc/self/pagemap
     std::ifstream pagemap("/proc/self/pagemap", std::ios::binary);
     if (!pagemap.is_open()) {
         fprintf(_dump_fout, "Failed to open /proc/self/pagemap\n");
         return;
     }
-	for (uintptr_t i = 0; i < numPages; ++i) {
-        uintptr_t page_addr = reinterpret_cast<uintptr_t>(vaddr) + (i * 4096);
-        uintptr_t page_index = page_addr / 4096;
+
+	uintptr_t base_addr = reinterpret_cast<uintptr_t>(vaddr);
+
+	for (uintptr_t i = 0; i < numPages; ++i)
+	{
+		uintptr_t page_addr = base_addr + (i * PAGE_SIZE);
+        uintptr_t page_index = page_addr / PAGE_SIZE;
 
         // Move the file pointer to the correct entry in pagemap
         pagemap.seekg(page_index * sizeof(uint64_t), std::ios::beg);
-        
-        uint64_t entry;
+		if (pagemap.fail()) {
+			fprintf(_dump_fout, "Failed to seek to page index 0x%lx\n", page_index);
+			continue;
+		}
+
+		uint64_t entry = 0;
         pagemap.read(reinterpret_cast<char*>(&entry), sizeof(uint64_t));
+		if (pagemap.fail()) {
+			fprintf(_dump_fout, "Failed to read pagemap entry for page index 0x%lx\n", page_index);
+			continue;
+		}
 
-        // Extract the page frame number and reference bit
-        uint64_t pfn = entry & 0x000000000000FFFF; // Page Frame Number
-        bool referenced = (entry & (1ULL << 63)) != 0; // Check referenced bit (63rd bit)
+        uint64_t pfn = entry & PFN_FLAG; 
+        bool present = (entry & PRESENT_FLAG) != 0;
 
-        // Output the results
-        fprintf(_dump_fout, "Page %lu: PFN: %lu, Referenced: %s\n",
-                page_index, pfn, referenced ? "true" : "false");
-    }
+		if (entry != 0) {
+			fprintf(_dump_fout, "Page_idx 0x%lx: PFN: 0x%lx, Present: %s\n", page_index, pfn, present ? "true" : "false");
+		} else {
+			fprintf(_dump_fout, "Page_idx 0x%lx: Invalid or unmapped\n", page_index);
+		}
+        
+	}
 
-    pagemap.close();
+	pagemap.close();
+	fprintf(_dump_fout, "fetchPageBits done\n\n");
 }
 
 #if defined(J9VM_GC_DYNAMIC_CLASS_UNLOADING)
@@ -243,8 +260,9 @@ MM_MarkingDelegate::mainCleanupAfterGC(MM_EnvironmentBase *env)
 
 	if (_markMap) {
 		fprintf(_dump_fout, "GC cycle count in mainCLeanupAfterGC: %ld\n", _extensions->globalGCStats.gcCount);
-		_markMap->dumpMarkMap(env, _dump_fout);
-		fetchPageBits((uintptr_t*)(_markMap->getMarkBits()), 8);
+		// print first 1 MB of heap
+		_markMap->dumpMarkMap(env, _dump_fout, 256);
+		fetchPageBits(_markMap->getMarkBits(), 256);
 	}
 #endif /* J9VM_GC_DYNAMIC_CLASS_UNLOADING */
 }

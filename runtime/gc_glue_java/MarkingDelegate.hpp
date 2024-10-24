@@ -113,7 +113,7 @@ public:
 	 */
 	bool initialize(MM_EnvironmentBase *env, MM_MarkingScheme *markingScheme);
 
-	void fetchPageBits(uintptr_t *vaddr, uintptr_t numPages);
+	void fetchPageBits(void *vaddr, uintptr_t numPages);
 
 	void initializeDumpFile() {
 		char fileName[40];
