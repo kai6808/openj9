@@ -94,14 +94,28 @@ MM_MarkingDelegate::fetchPageBits(void *vaddr, uintptr_t numPages)
 	fprintf(_dump_fout, "vaddr: %p, numPages: %ld\n", vaddr, numPages);
 
 	// TODO: fetch page size from JVM
-	const uint64_t PFN_FLAG = ((1ULL << 55) - 1); // PFN  (0-54 bits)
-	const uint64_t PRESENT_FLAG = 1ULL << 63; // present bit (63rd bit)
 	// const uint64_t PAGE_SIZE = 4096;
 	long PAGE_SIZE = sysconf(_SC_PAGE_SIZE);
 
-	int fd = open("/proc/self/pagemap", O_RDONLY);
-	if (fd < 0) {
+	const uint64_t PFN_FLAG = ((1ULL << 55) - 1); // PFN  (0-54 bits)
+	const uint64_t PRESENT_FLAG = 1ULL << 63; // present bit (63rd bit)
+	
+
+	// refer to linux/include/uapi/linux/kernel-page-flags.h
+	const uint64_t ACTIVE_FLAG = 1ULL << 6; // active bit (6th bit)
+	const uint64_t REFERENCED_FLAG = 1ULL << 2; // referenced bit (2nd bit)
+	const uint64_t LRU_FLAG = 1ULL << 5; // lru bit (5th bit)
+	const uint64_t RECLAIM_FLAG = 1ULL << 9; // reclaim bit (9th bit)
+	const uint64_t ANON_FLAG = 1ULL << 12; // anon bit (12th bit)
+
+	int pagemap_fd = open("/proc/self/pagemap", O_RDONLY);
+	int kpageflags_fd = open("/proc/kpageflags", O_RDONLY);
+	if (pagemap_fd < 0) {
 		fprintf(_dump_fout, "Failed to open /proc/self/pagemap\n");
+		return;
+	}
+	if (kpageflags_fd < 0) {
+		fprintf(_dump_fout, "Failed to open /proc/kpageflags\n");
 		return;
 	}
 
@@ -111,25 +125,48 @@ MM_MarkingDelegate::fetchPageBits(void *vaddr, uintptr_t numPages)
 	{
 		uintptr_t page_addr = base_addr + (i * PAGE_SIZE);
         uintptr_t page_index = page_addr / PAGE_SIZE;
-		off_t offset = page_index * sizeof(uint64_t);
+		off_t pagemap_offset = page_index * sizeof(uint64_t);
 
-		uint64_t entry;
-		ssize_t bytes_read = pread(fd, &entry, sizeof(entry), offset);
-		if (bytes_read != sizeof(entry)) {
+		uint64_t pagemap_entry;
+		ssize_t bytes_read = pread(pagemap_fd, &pagemap_entry, sizeof(pagemap_entry), pagemap_offset);
+		if (bytes_read != sizeof(pagemap_entry)) {
 			fprintf(_dump_fout, "Failed to read pagemap entry for page addr 0x%lx (offset: 0x%lx): %s\n", 
-                    page_addr, offset, strerror(errno));
+                    page_addr, pagemap_offset, strerror(errno));
             continue;
 		}
 
-		uint64_t pfn = entry & PFN_FLAG; 
-		bool present = (entry & PRESENT_FLAG) != 0;
+		uint64_t pfn = pagemap_entry & PFN_FLAG; 
+		bool present = (pagemap_entry & PRESENT_FLAG) != 0;
 
-		fprintf(_dump_fout, "Page_addr 0x%lx: PFN: 0x%lx, Present: %s\n", page_addr, pfn, present ? "true" : "false");
+		fprintf(_dump_fout, "Page %lu, VPN 0x%lx: PFN: 0x%lx, Present: %s", i, page_addr, pfn, present ? "true" : "false");
+
+		if (present && pfn != 0) {
+			off_t kpageflags_offset = pfn * sizeof(uint64_t);
+			uint64_t kpageflags;
+
+			bytes_read = pread(kpageflags_fd, &kpageflags, sizeof(kpageflags), kpageflags_offset);
+			if (bytes_read != sizeof(kpageflags)) {
+				fprintf(_dump_fout, "Failed to read kpageflags entry for pfn 0x%lx (offset: 0x%lx): %s\n", 
+						pfn, kpageflags_offset, strerror(errno));
+				continue;
+			}
+
+			bool active = (kpageflags & ACTIVE_FLAG) != 0;
+			bool referenced = (kpageflags & REFERENCED_FLAG) != 0;
+			bool lru = (kpageflags & LRU_FLAG) != 0;
+			bool reclaim = (kpageflags & RECLAIM_FLAG) != 0;
+			bool anon = (kpageflags & ANON_FLAG) != 0;
+			
+			fprintf(_dump_fout, ", Active: %s, Referenced: %s, LRU: %s, Reclaim: %s, Anon: %s\n", 
+					active ? "true" : "false", referenced ? "true" : "false", lru ? "true" : "false", reclaim ? "true" : "false", anon ? "true" : "false");
+		} else {
+			fprintf(_dump_fout, "\n");
+		}
 
 	}
 
-	// pagemap.close();
-	close(fd);
+	close(pagemap_fd);
+	close(kpageflags_fd);
 	fprintf(_dump_fout, "fetchPageBits done\n\n");
 }
 
