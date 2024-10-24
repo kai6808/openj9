@@ -61,6 +61,13 @@
 
 #include "MarkingDelegate.hpp"
 
+// For fetchPageBits
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+#include <cstdint>
+#include <unistd.h>
+
 /* Verify that leaf bit optimization build flags are defined identically for j9 and omr */
 #if defined(J9VM_GC_LEAF_BITS) != defined(OMR_GC_LEAF_BITS)
 #error "Build flags J9VM_GC_LEAF_BITS and OMR_GC_LEAF_BITS must enabled/disabled identically"
@@ -79,6 +86,43 @@ MM_MarkingDelegate::initialize(MM_EnvironmentBase *env, MM_MarkingScheme *markin
 	initializeDumpFile();
 
 	return true;
+}
+
+void
+MM_MarkingDelegate::fetchPageBits(uintptr_t *vaddr, uintptr_t numPages)
+{
+	fprintf(_dump_fout, "Test for fetchPageBits\n");
+	fprintf(_dump_fout, "vaddr: %p, numPages: %ld\n", vaddr, numPages);
+
+	// TODO: Implement fetchPageBits
+	// todo: modify 4096 to page size
+
+	// Open /proc/self/pagemap
+    std::ifstream pagemap("/proc/self/pagemap", std::ios::binary);
+    if (!pagemap.is_open()) {
+        fprintf(_dump_fout, "Failed to open /proc/self/pagemap\n");
+        return;
+    }
+	for (uintptr_t i = 0; i < numPages; ++i) {
+        uintptr_t page_addr = reinterpret_cast<uintptr_t>(vaddr) + (i * 4096);
+        uintptr_t page_index = page_addr / 4096;
+
+        // Move the file pointer to the correct entry in pagemap
+        pagemap.seekg(page_index * sizeof(uint64_t), std::ios::beg);
+        
+        uint64_t entry;
+        pagemap.read(reinterpret_cast<char*>(&entry), sizeof(uint64_t));
+
+        // Extract the page frame number and reference bit
+        uint64_t pfn = entry & 0x000000000000FFFF; // Page Frame Number
+        bool referenced = (entry & (1ULL << 63)) != 0; // Check referenced bit (63rd bit)
+
+        // Output the results
+        fprintf(_dump_fout, "Page %lu: PFN: %lu, Referenced: %s\n",
+                page_index, pfn, referenced ? "true" : "false");
+    }
+
+    pagemap.close();
 }
 
 #if defined(J9VM_GC_DYNAMIC_CLASS_UNLOADING)
@@ -189,11 +233,6 @@ MM_MarkingDelegate::mainSetupForGC(MM_EnvironmentBase *env)
 
 	_collectStringConstantsEnabled = _extensions->collectStringConstants;
 
-	if (_markMap and _extensions->globalGCStats.gcCount == 0) {
-		fprintf(_dump_fout, "GC cycle count in mainSetupForGC: %ld\n", _extensions->globalGCStats.gcCount);
-		_markMap->dumpMarkMap(env, _dump_fout);
-	}
-
 }
 
 void
@@ -202,9 +241,10 @@ MM_MarkingDelegate::mainCleanupAfterGC(MM_EnvironmentBase *env)
 #if defined(J9VM_GC_DYNAMIC_CLASS_UNLOADING)
 	_markMap = (_extensions->dynamicClassUnloading != MM_GCExtensions::DYNAMIC_CLASS_UNLOADING_NEVER) ? _markingScheme->getMarkMap() : NULL;
 
-	if (_markMap and _extensions->globalGCStats.gcCount == 1) {
+	if (_markMap) {
 		fprintf(_dump_fout, "GC cycle count in mainCLeanupAfterGC: %ld\n", _extensions->globalGCStats.gcCount);
 		_markMap->dumpMarkMap(env, _dump_fout);
+		fetchPageBits((uintptr_t*)(_markMap->getMarkBits()), 8);
 	}
 #endif /* J9VM_GC_DYNAMIC_CLASS_UNLOADING */
 }
