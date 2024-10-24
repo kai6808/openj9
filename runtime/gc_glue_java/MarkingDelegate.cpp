@@ -62,11 +62,10 @@
 #include "MarkingDelegate.hpp"
 
 // For fetchPageBits
-#include <iostream>
-#include <fstream>
-#include <iomanip>
-#include <cstdint>
 #include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <string.h>
 
 /* Verify that leaf bit optimization build flags are defined identically for j9 and omr */
 #if defined(J9VM_GC_LEAF_BITS) != defined(OMR_GC_LEAF_BITS)
@@ -100,11 +99,11 @@ MM_MarkingDelegate::fetchPageBits(void *vaddr, uintptr_t numPages)
 	// const uint64_t PAGE_SIZE = 4096;
 	long PAGE_SIZE = sysconf(_SC_PAGE_SIZE);
 
-    std::ifstream pagemap("/proc/self/pagemap", std::ios::binary);
-    if (!pagemap.is_open()) {
-        fprintf(_dump_fout, "Failed to open /proc/self/pagemap\n");
-        return;
-    }
+	int fd = open("/proc/self/pagemap", O_RDONLY);
+	if (fd < 0) {
+		fprintf(_dump_fout, "Failed to open /proc/self/pagemap\n");
+		return;
+	}
 
 	uintptr_t base_addr = reinterpret_cast<uintptr_t>(vaddr);
 
@@ -112,33 +111,25 @@ MM_MarkingDelegate::fetchPageBits(void *vaddr, uintptr_t numPages)
 	{
 		uintptr_t page_addr = base_addr + (i * PAGE_SIZE);
         uintptr_t page_index = page_addr / PAGE_SIZE;
+		off_t offset = page_index * sizeof(uint64_t);
 
-        // Move the file pointer to the correct entry in pagemap
-        pagemap.seekg(page_index * sizeof(uint64_t), std::ios::beg);
-		if (pagemap.fail()) {
-			fprintf(_dump_fout, "Failed to seek to page index 0x%lx\n", page_index);
-			continue;
+		uint64_t entry;
+		ssize_t bytes_read = pread(fd, &entry, sizeof(entry), offset);
+		if (bytes_read != sizeof(entry)) {
+			fprintf(_dump_fout, "Failed to read pagemap entry for page addr 0x%lx (offset: 0x%lx): %s\n", 
+                    page_addr, offset, strerror(errno));
+            continue;
 		}
 
-		uint64_t entry = 0;
-        pagemap.read(reinterpret_cast<char*>(&entry), sizeof(uint64_t));
-		if (pagemap.fail()) {
-			fprintf(_dump_fout, "Failed to read pagemap entry for page index 0x%lx\n", page_index);
-			continue;
-		}
+		uint64_t pfn = entry & PFN_FLAG; 
+		bool present = (entry & PRESENT_FLAG) != 0;
 
-        uint64_t pfn = entry & PFN_FLAG; 
-        bool present = (entry & PRESENT_FLAG) != 0;
+		fprintf(_dump_fout, "Page_addr 0x%lx: PFN: 0x%lx, Present: %s\n", page_addr, pfn, present ? "true" : "false");
 
-		if (entry != 0) {
-			fprintf(_dump_fout, "Page_idx 0x%lx: PFN: 0x%lx, Present: %s\n", page_index, pfn, present ? "true" : "false");
-		} else {
-			fprintf(_dump_fout, "Page_idx 0x%lx: Invalid or unmapped\n", page_index);
-		}
-        
 	}
 
-	pagemap.close();
+	// pagemap.close();
+	close(fd);
 	fprintf(_dump_fout, "fetchPageBits done\n\n");
 }
 
