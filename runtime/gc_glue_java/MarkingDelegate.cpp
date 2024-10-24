@@ -189,12 +189,11 @@ MM_MarkingDelegate::mainSetupForGC(MM_EnvironmentBase *env)
 
 	_collectStringConstantsEnabled = _extensions->collectStringConstants;
 
-
-	fprintf(_dump_fout, "GC cycle %ld\n", _extensions->globalGCStats.gcCount);
-
-	if (_markMap->isMarkMapValid()) {
+	if (_markMap and _extensions->globalGCStats.gcCount == 0) {
+		fprintf(_dump_fout, "GC cycle count in mainSetupForGC: %ld\n", _extensions->globalGCStats.gcCount);
 		_markMap->dumpMarkMap(env, _dump_fout);
 	}
+
 }
 
 void
@@ -202,6 +201,11 @@ MM_MarkingDelegate::mainCleanupAfterGC(MM_EnvironmentBase *env)
 {
 #if defined(J9VM_GC_DYNAMIC_CLASS_UNLOADING)
 	_markMap = (_extensions->dynamicClassUnloading != MM_GCExtensions::DYNAMIC_CLASS_UNLOADING_NEVER) ? _markingScheme->getMarkMap() : NULL;
+
+	if (_markMap and _extensions->globalGCStats.gcCount == 1) {
+		fprintf(_dump_fout, "GC cycle count in mainCLeanupAfterGC: %ld\n", _extensions->globalGCStats.gcCount);
+		_markMap->dumpMarkMap(env, _dump_fout);
+	}
 #endif /* J9VM_GC_DYNAMIC_CLASS_UNLOADING */
 }
 
