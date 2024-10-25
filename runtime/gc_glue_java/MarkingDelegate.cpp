@@ -288,9 +288,10 @@ MM_MarkingDelegate::mainCleanupAfterGC(MM_EnvironmentBase *env)
 
 	if (_markMap) {
 		fprintf(_dump_fout, "GC cycle count in mainCLeanupAfterGC: %ld\n", _extensions->globalGCStats.gcCount);
-		// print first 1 MB of heap
-		_markMap->dumpMarkMap(env, _dump_fout, 256);
-		fetchPageBits(_markMap->getMarkBits(), 256);
+		// print first 4 MB of heap
+		_markMap->dumpMarkMap(env, _dump_fout, 256*4);
+		// fetchPageBits(_markMap->getMarkBits(), 256*4);
+		fetchPageBits((void *)_markMap->getHeapMapBaseRegionRounded(), 256 * 4);
 	}
 #endif /* J9VM_GC_DYNAMIC_CLASS_UNLOADING */
 }
