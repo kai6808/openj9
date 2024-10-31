@@ -286,12 +286,11 @@ MM_MarkingDelegate::mainCleanupAfterGC(MM_EnvironmentBase *env)
 #if defined(J9VM_GC_DYNAMIC_CLASS_UNLOADING)
 	_markMap = (_extensions->dynamicClassUnloading != MM_GCExtensions::DYNAMIC_CLASS_UNLOADING_NEVER) ? _markingScheme->getMarkMap() : NULL;
 
-	if (_markMap) {
+	if (_markMap and _extensions->dumpMarkMapInMB > 0) {
 		fprintf(_dump_fout, "GC cycle count in mainCLeanupAfterGC: %ld\n", _extensions->globalGCStats.gcCount);
-		// print first 4 MB of heap
-		_markMap->dumpMarkMap(env, _dump_fout, 256*4);
-		// fetchPageBits(_markMap->getMarkBits(), 256*4);
-		fetchPageBits((void *)_markMap->getHeapMapBaseRegionRounded(), 256 * 4);
+		// print first extensions->dumpObjCountFreq MB of heap
+		_markMap->dumpMarkMap(env, _dump_fout, 256*_extensions->dumpMarkMapInMB);
+		fetchPageBits((void *)_markMap->getHeapMapBaseRegionRounded(), 256 * _extensions->dumpMarkMapInMB);
 	}
 #endif /* J9VM_GC_DYNAMIC_CLASS_UNLOADING */
 }
