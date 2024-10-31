@@ -91,7 +91,7 @@ void
 MM_MarkingDelegate::fetchPageBits(void *vaddr, uintptr_t numPages)
 {
 	fprintf(_dump_fout, "fetchPageBits starts: ");
-	fprintf(_dump_fout, "vaddr: %p, numPages: %ld\n", vaddr, numPages);
+	fprintf(_dump_fout, "vaddr: %p, numPages: %ld. [page idx, present, flags]\n", vaddr, numPages);
 
 	// TODO: fetch page size from JVM
 	// const uint64_t PAGE_SIZE = 4096;
@@ -101,12 +101,7 @@ MM_MarkingDelegate::fetchPageBits(void *vaddr, uintptr_t numPages)
 	const uint64_t PRESENT_FLAG = 1ULL << 63; // present bit (63rd bit)
 	
 
-	// refer to linux/include/uapi/linux/kernel-page-flags.h
-	const uint64_t ACTIVE_FLAG = 1ULL << 6; // active bit (6th bit)
-	const uint64_t REFERENCED_FLAG = 1ULL << 2; // referenced bit (2nd bit)
-	const uint64_t LRU_FLAG = 1ULL << 5; // lru bit (5th bit)
-	const uint64_t RECLAIM_FLAG = 1ULL << 9; // reclaim bit (9th bit)
-	const uint64_t ANON_FLAG = 1ULL << 12; // anon bit (12th bit)
+	// page flags refer to linux/include/uapi/linux/kernel-page-flags.h
 
 	int pagemap_fd = open("/proc/self/pagemap", O_RDONLY);
 	int kpageflags_fd = open("/proc/kpageflags", O_RDONLY);
@@ -138,7 +133,7 @@ MM_MarkingDelegate::fetchPageBits(void *vaddr, uintptr_t numPages)
 		uint64_t pfn = pagemap_entry & PFN_FLAG; 
 		bool present = (pagemap_entry & PRESENT_FLAG) != 0;
 
-		fprintf(_dump_fout, "Page %lu, VPN 0x%lx: PFN: 0x%lx, Present: %s", i, page_addr, pfn, present ? "true" : "false");
+		fprintf(_dump_fout, "%lu, %d", i, present ? 1 : 0);
 
 		if (present && pfn != 0) {
 			off_t kpageflags_offset = pfn * sizeof(uint64_t);
@@ -151,14 +146,7 @@ MM_MarkingDelegate::fetchPageBits(void *vaddr, uintptr_t numPages)
 				continue;
 			}
 
-			bool active = (kpageflags & ACTIVE_FLAG) != 0;
-			bool referenced = (kpageflags & REFERENCED_FLAG) != 0;
-			bool lru = (kpageflags & LRU_FLAG) != 0;
-			bool reclaim = (kpageflags & RECLAIM_FLAG) != 0;
-			bool anon = (kpageflags & ANON_FLAG) != 0;
-			
-			fprintf(_dump_fout, ", Active: %s, Referenced: %s, LRU: %s, Reclaim: %s, Anon: %s\n", 
-					active ? "true" : "false", referenced ? "true" : "false", lru ? "true" : "false", reclaim ? "true" : "false", anon ? "true" : "false");
+			fprintf(_dump_fout, ", 0x%08x\n", static_cast<uint32_t>(kpageflags & 0xFFFFFFFF));
 		} else {
 			fprintf(_dump_fout, "\n");
 		}
