@@ -32,6 +32,13 @@
 #include "j9.h"
 #include "j9cfg.h"
 #include "EnvironmentVLHGC.hpp"
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <string.h>
+# include <cstdio> // for FILE, fopen, fclose, printf
+# include <memory> // for unique_ptr
+
 
 class MM_CycleState;
 class MM_ParallelDispatcher;
@@ -40,6 +47,15 @@ class MM_GCExtensions;
 class MM_GlobalMarkingScheme;
 class MM_MarkMap;
 class MM_WorkPacketsVLHGC;
+
+struct fileCloserDuplicate {
+	void operator()(FILE *file) const {
+		if (file) {
+			printf("My log: fileCloser\n");
+			fclose(file);
+		}
+	}
+};
 
 
 class MM_GlobalMarkDelegate : public MM_BaseNonVirtual
@@ -53,8 +69,94 @@ private:
 	MM_GlobalMarkingScheme *_markingScheme;  /**< Bit map marking implementation used to perform liveness tracing */
 	MM_ParallelDispatcher *_dispatcher;  /**< Dispatcher used for tasks */
 
+	FILE *_dump_fout;
+	std::unique_ptr<FILE, fileCloserDuplicate> _dump_ptr;
+
 	/* Member Functions */
 public:
+
+	void initializeDumpFile() {
+		char fileName[40];
+		std::ignore = tmpnam(fileName);
+		_dump_ptr.reset(fopen(fileName, "w"));
+		if (!_dump_ptr) {
+			printf("My log: initializeDumpFile failed to open file.");
+			return;
+		}
+		_dump_fout = _dump_ptr.get();
+
+		printf("My log: initializeDumpFile in GlobalMarkDelegate with name='%s'\n", fileName);
+	}
+
+	void fetchPageBits(void *vaddr, uintptr_t numPages) {
+		fprintf(_dump_fout, "fetchPageBits starts: ");
+		fprintf(_dump_fout, "vaddr: %p, numPages: %ld. [page idx, present, flags]\n", vaddr, numPages);
+
+		// TODO: fetch page size from JVM
+		// const uint64_t PAGE_SIZE = 4096;
+		long PAGE_SIZE = sysconf(_SC_PAGE_SIZE);
+
+		const uint64_t PFN_FLAG = ((1ULL << 55) - 1); // PFN  (0-54 bits)
+		const uint64_t PRESENT_FLAG = 1ULL << 63; // present bit (63rd bit)
+		
+
+		// page flags refer to linux/include/uapi/linux/kernel-page-flags.h
+
+		int pagemap_fd = open("/proc/self/pagemap", O_RDONLY);
+		int kpageflags_fd = open("/proc/kpageflags", O_RDONLY);
+		if (pagemap_fd < 0) {
+			fprintf(_dump_fout, "Failed to open /proc/self/pagemap\n");
+			return;
+		}
+		if (kpageflags_fd < 0) {
+			fprintf(_dump_fout, "Failed to open /proc/kpageflags\n");
+			return;
+		}
+
+		uintptr_t base_addr = reinterpret_cast<uintptr_t>(vaddr);
+
+		for (uintptr_t i = 0; i < numPages; ++i)
+		{
+			uintptr_t page_addr = base_addr + (i * PAGE_SIZE);
+			uintptr_t page_index = page_addr / PAGE_SIZE;
+			off_t pagemap_offset = page_index * sizeof(uint64_t);
+
+			uint64_t pagemap_entry;
+			ssize_t bytes_read = pread(pagemap_fd, &pagemap_entry, sizeof(pagemap_entry), pagemap_offset);
+			if (bytes_read != sizeof(pagemap_entry)) {
+				fprintf(_dump_fout, "Failed to read pagemap entry for page addr 0x%lx (offset: 0x%lx): %s\n", 
+						page_addr, pagemap_offset, strerror(errno));
+				continue;
+			}
+
+			uint64_t pfn = pagemap_entry & PFN_FLAG; 
+			bool present = (pagemap_entry & PRESENT_FLAG) != 0;
+
+			fprintf(_dump_fout, "%lu, %d", i, present ? 1 : 0);
+
+			if (present && pfn != 0) {
+				off_t kpageflags_offset = pfn * sizeof(uint64_t);
+				uint64_t kpageflags;
+
+				bytes_read = pread(kpageflags_fd, &kpageflags, sizeof(kpageflags), kpageflags_offset);
+				if (bytes_read != sizeof(kpageflags)) {
+					fprintf(_dump_fout, "Failed to read kpageflags entry for pfn 0x%lx (offset: 0x%lx): %s\n", 
+							pfn, kpageflags_offset, strerror(errno));
+					continue;
+				}
+
+				fprintf(_dump_fout, ", 0x%08x\n", static_cast<uint32_t>(kpageflags & 0xFFFFFFFF));
+			} else {
+				fprintf(_dump_fout, "\n");
+			}
+
+		}
+
+		close(pagemap_fd);
+		close(kpageflags_fd);
+		fprintf(_dump_fout, "fetchPageBits done\n\n");
+	}
+
 
 	/**
 	 * Initialize any resources required.

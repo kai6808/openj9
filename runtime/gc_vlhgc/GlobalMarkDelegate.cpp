@@ -62,6 +62,8 @@ MM_GlobalMarkDelegate::initialize(MM_EnvironmentVLHGC *env)
 	}
 
 	_dispatcher = _extensions->dispatcher;
+	
+	initializeDumpFile();
 
 	return true;
 
@@ -354,6 +356,18 @@ MM_GlobalMarkDelegate::markAll(MM_EnvironmentVLHGC *env)
 
 	/* Do any post mark checks */
 	_markingScheme->mainCleanupAfterGC(env);
+
+	printf("TEST: %s\n", "markAll");
+	printf("TEST: dumpMarkMapInMB = %d\n", _extensions->dumpMarkMapInMB);
+	if (_extensions->dumpMarkMapInMB > 0) {
+		printf("1");
+		fprintf(_dump_fout, "GC cycle count in markAll: %ld\n", _extensions->globalGCStats.gcCount);
+		printf("2");
+		// _markingScheme->getMarkMap()->dumpMarkMap(env, _dump_fout, 256 * _extensions->dumpMarkMapInMB);
+		printf("3");
+		// fetchPageBits((void *)(_markingScheme->getMarkMap())->getHeapMapBaseRegionRounded(), 256 * _extensions->dumpMarkMapInMB);
+		printf("4");
+	}
 }
 
 bool

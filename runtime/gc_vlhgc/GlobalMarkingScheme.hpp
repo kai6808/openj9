@@ -435,6 +435,9 @@ protected:
 	}
 
 public:
+
+	MM_MarkMap *getMarkMap() { return _markMap; }
+
 	static MM_GlobalMarkingScheme *newInstance(MM_EnvironmentVLHGC *env); 
 	virtual void kill(MM_EnvironmentVLHGC *env);
 	
